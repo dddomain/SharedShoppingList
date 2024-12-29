@@ -1,17 +1,15 @@
-//
-//  SharedShoppingListApp.swift
-//  SharedShoppingList
-//
-//  Created by 小原大輔 on 2024/12/25.
-//
-
 import SwiftUI
+import Firebase
+import FirebaseMessaging
 
 @main
 struct SharedShoppingListApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environmentObject(SessionManager())
         }
     }
 }

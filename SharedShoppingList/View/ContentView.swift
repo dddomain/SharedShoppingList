@@ -1,3 +1,4 @@
+//ContentView.swift
 import SwiftUI
 import FirebaseAuth
 
@@ -5,11 +6,23 @@ struct ContentView: View {
     @EnvironmentObject var session: SessionManager
 
     var body: some View {
-        NavigationView {
-            if session.isLoggedIn {
-                GroupListView()
-            } else {
-                LoginView(isLoggedIn: $session.isLoggedIn)
+        TabView {
+            NavigationView {
+                if session.isLoggedIn {
+                    GroupListView()
+                } else {
+                    LoginView(isLoggedIn: $session.isLoggedIn)
+                }
+            }
+            .tabItem {
+                Label("Home", systemImage: "house")
+            }
+
+            NavigationView {
+                SettingsView()
+            }
+            .tabItem {
+                Label("Settings", systemImage: "gear")
             }
         }
         .previewDevice("iPhone 14")

@@ -215,7 +215,7 @@ struct GroupListView: View {
                         return Group(
                             id: doc.documentID,
                             name: data["name"] as? String ?? "名前不明" ,
-                            inviteCode: data["invidateCode"] as? String ?? ""
+                            inviteCode: data["inviteCode"] as? String ?? ""
                         )
                     }
                 }

@@ -30,6 +30,8 @@ struct LoginView: View {
                     Auth.auth().signIn(withEmail: email, password: password) { authResult, error in
                         if authResult != nil {
                             isLoggedIn = true
+                        } else {
+                            print("ログインできませんでした。")
                         }
                     }
                 }

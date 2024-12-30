@@ -191,7 +191,7 @@ struct ItemListView: View {
             "location": newItemLocation,
             "url": newItemURL,
             "quantity": Int(newItemQuantity) ?? 1,
-            "deadline": formatter.string(from: newItemDeadline),
+            "deadline": Timestamp(date: newItemDeadline),
             "memo": newItemMemo,
             "registeredAt": formatter.string(from: Date()),
             "registrant": Auth.auth().currentUser?.uid ?? "unknown"

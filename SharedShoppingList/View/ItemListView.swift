@@ -224,5 +224,4 @@ struct ItemListView: View {
             }
         }
     }
-
 }

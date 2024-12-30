@@ -20,16 +20,19 @@ struct ItemListView: View {
     var body: some View {
         VStack {
             if !inviteCode.isEmpty {
-                Text("招待コード: \(inviteCode)")
-                    .font(.headline)
-                    .padding()
-                    .onTapGesture {
-                        UIPasteboard.general.string = inviteCode
-                    }
-                    .foregroundColor(.blue)
-                    .background(Color(UIColor.secondarySystemBackground))
-                    .cornerRadius(8)
-                    .padding(.horizontal)
+                HStack {
+                    Text("招待コード: \(inviteCode)")
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                    Spacer()
+                    Image(systemName: "doc.on.doc")
+                        .foregroundColor(.gray)
+                        .onTapGesture {
+                            UIPasteboard.general.string = inviteCode
+                        }
+                }
+                .padding(.vertical, 8)
+                .padding(.horizontal)
             }
             
             if items.isEmpty {

@@ -1,6 +1,7 @@
 // ItemListView.swift
 import SwiftUI
 import FirebaseFirestore
+import FirebaseAuth
 
 enum AlertType {
     case purchase
@@ -13,6 +14,11 @@ struct ItemListView: View {
     @State private var items: [Item] = []
     @State private var inviteCode: String = ""
     @State private var newItemName: String = ""
+    @State private var newItemLocation: String = ""
+    @State private var newItemURL: String = ""
+    @State private var newItemQuantity: String = "1"
+    @State private var newItemDeadline: Date = Date()
+    @State private var newItemMemo: String = ""
     @State private var showAddItemPopup: Bool = false
     @State private var alertType: AlertType = .none
     @State private var selectedItem: Item? = nil
@@ -45,26 +51,22 @@ struct ItemListView: View {
                 List {
                     ForEach(items) { item in
                         HStack {
-                            Text(item.name)
-                            Spacer()
-                            if item.purchased {
-                                Image(systemName: "checkmark.circle.fill")
-                            } else {
-                                Image(systemName: "circle")
+                            Image(systemName: item.purchased ? "checkmark.circle.fill" : "circle")
+                                .onTapGesture {
+                                    selectedItem = item
+                                    if item.purchased {
+                                        alertType = .unpurchase
+                                    } else {
+                                        alertType = .purchase
+                                    }
+                                }
+                            NavigationLink(destination: ItemDetailView(group: Group(id: group.id, name: group.name, inviteCode: group.inviteCode), item: item)) {
+                                Text(item.name)
                             }
                         }
                         .contentShape(Rectangle())
-                        .onTapGesture {
-                            selectedItem = item
-                            if item.purchased {
-                                alertType = .unpurchase
-                            } else {
-                                alertType = .purchase
-                            }
-                        }
                     }
                     .onDelete(perform: deleteItem)
-                    .onMove(perform: moveItem)
                 }
             }
         }
@@ -91,6 +93,11 @@ struct ItemListView: View {
                     .font(.headline)
                     .padding()
                 TextField("アイテム名", text: $newItemName)
+                    TextField("購入できる場所", text: $newItemLocation)
+                    TextField("URL", text: $newItemURL)
+                    TextField("個数", text: $newItemQuantity)
+                    DatePicker("購入期限", selection: $newItemDeadline, displayedComponents: .date)
+                    TextField("メモ", text: $newItemMemo)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
                 Button("追加") {
@@ -151,7 +158,16 @@ struct ItemListView: View {
                         id: doc.documentID,
                         name: data["name"] as? String ?? "",
                         purchased: data["purchased"] as? Bool ?? false,
-                        order: data["order"] as? Int ?? 0
+                        order: data["order"] as? Int ?? 0,
+                        location: data["location"] as? String ?? "",
+                        url: data["url"] as? String ?? "",
+                        quantity: data["quantity"] as? Int ?? 1,
+                        deadline: data["deadline"] as? String ?? "",
+                        memo: data["memo"] as? String ?? "",
+                        registeredAt: data["registeredAt"] as? String ?? "",
+                        registrant: data["registrant"] as? String ?? "",
+                        buyer: data["buyer"] as? String,
+                        purchasedAt: data["purchasedAt"] as? String
                     )
                 }
                 DispatchQueue.main.async {
@@ -166,14 +182,37 @@ struct ItemListView: View {
         let db = Firestore.firestore()
         let newItemRef = db.collection("groups").document(group.id).collection("items").document()
         let maxOrder = (items.max(by: { $0.order < $1.order })?.order ?? 0) + 1
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
         let itemData: [String: Any] = [
             "name": newItemName,
             "purchased": false,
-            "order": maxOrder
+            "order": maxOrder,
+            "location": newItemLocation,
+            "url": newItemURL,
+            "quantity": Int(newItemQuantity) ?? 1,
+            "deadline": formatter.string(from: newItemDeadline),
+            "memo": newItemMemo,
+            "registeredAt": formatter.string(from: Date()),
+            "registrant": Auth.auth().currentUser?.uid ?? "unknown"
         ]
         newItemRef.setData(itemData) { error in
             if error == nil {
-                items.append(Item(id: newItemRef.documentID, name: newItemName, purchased: false, order: maxOrder))
+                items.append(Item(
+                    id: newItemRef.documentID,
+                    name: newItemName,
+                    purchased: false,
+                    order: maxOrder,
+                    location: newItemLocation,
+                    url: newItemURL,
+                    quantity: Int(newItemQuantity) ?? 1,
+                    deadline: formatter.string(from: newItemDeadline),
+                    memo: newItemMemo,
+                    registeredAt: formatter.string(from: Date()),
+                    registrant: Auth.auth().currentUser?.uid ?? "unknown",
+                    buyer: nil,
+                    purchasedAt: nil
+                ))
                 newItemName = ""
             }
         }

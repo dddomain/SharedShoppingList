@@ -7,6 +7,7 @@ class SessionManager: ObservableObject {
     @Published var isLoggedIn: Bool = false
     @Published var user: User? = nil
     @Published var fcmToken: String = ""
+    @Published var showProfile: Bool = false
 
     init() {
         Auth.auth().addStateDidChangeListener { [weak self] _, user in

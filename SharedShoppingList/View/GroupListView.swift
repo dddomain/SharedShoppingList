@@ -8,32 +8,68 @@ struct GroupListView: View {
     @State private var groups: [Group] = []
     @State private var newGroupName: String = ""
     @State private var showAddGroupPopup: Bool = false
+    
+    @State private var userName: String = ""
+    @State private var displayName: String = ""
+    @State private var email: String = ""
+    @State private var birthdate: String = ""
 
     var body: some View {
-        
-            VStack {
-                List {
-                    ForEach(groups) { group in
-                        NavigationLink(destination: ItemListView(group: group)) {
-                            Text(group.name)
-                        }
+        VStack {
+            List {
+                ForEach(groups) { group in
+                    NavigationLink(destination: ItemListView(group: group)) {
+                        Text(group.name)
                     }
-                    .onDelete(perform: deleteGroup)
-                    .onMove(perform: moveGroup)
                 }
-
-                Button("グループを追加") {
-                    showAddGroupPopup = true
-                }
-                .padding()
+                .onDelete(perform: deleteGroup)
+                .onMove(perform: moveGroup)
             }
-            .navigationTitle("グループ一覧")
-            .toolbar {
+
+            Button("グループを追加") {
+                showAddGroupPopup = true
+            }
+            .padding()
+        }
+        .navigationTitle("グループ一覧")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
                 EditButton()
             }
-            .onAppear {
-                fetchGroups()
+            ToolbarItem(placement: .navigationBarLeading) {
+                Menu {
+                    Button(action: {
+                        // プロフィール画面に遷移
+                        session.showProfile = true
+                        fetchUserInfo()
+                    }) {
+                        Label("プロフィールを見る", systemImage: "person")
+                    }
+                    Button(action: {
+                        // ログアウト処理
+                        do {
+                            try Auth.auth().signOut()
+                            session.isLoggedIn = false
+                        } catch {
+                            print("ログアウトに失敗しました: \(error.localizedDescription)")
+                        }
+                    }) {
+                        Label("ログアウトする", systemImage: "arrow.right.circle")
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "person.circle")
+                        Text(session.user?.displayName ?? "ゲスト")
+                    }
+                }
             }
+        }
+        .onAppear {
+            fetchGroups()
+        }
+        .sheet(isPresented: $session.showProfile) {
+            ProfileView(userName: userName, displayName: displayName, email: email, birthdate: birthdate)
+        }
         .sheet(isPresented: $showAddGroupPopup) {
             VStack {
                 Text("新しいグループを追加")
@@ -53,6 +89,27 @@ struct GroupListView: View {
                 .padding()
             }
             .padding()
+        }
+    }
+
+    // ユーザー情報を取得する関数
+    func fetchUserInfo() {
+        guard let user = Auth.auth().currentUser else { return }
+        let db = Firestore.firestore()
+        
+        db.collection("users").document(user.uid).getDocument { document, error in
+            if let document = document, document.exists {
+                let data = document.data()
+                userName = "\(data?["firstName"] as? String ?? "") \(data?["lastName"] as? String ?? "")"
+                displayName = data?["displayName"] as? String ?? "未設定"
+                email = data?["email"] as? String ?? "未設定"
+                
+                if let timestamp = data?["birthdate"] as? Timestamp {
+                    let dateFormatter = DateFormatter()
+                    dateFormatter.dateStyle = .medium
+                    birthdate = dateFormatter.string(from: timestamp.dateValue())
+                }
+            }
         }
     }
 

@@ -87,7 +87,6 @@ struct GroupListView: View {
                 } label: {
                     HStack {
                         Image(systemName: "person.circle")
-                        Text(session.user?.displayName ?? "ゲスト")
                     }
                 }
             }

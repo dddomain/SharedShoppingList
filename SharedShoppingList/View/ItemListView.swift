@@ -11,6 +11,7 @@ enum AlertType {
 struct ItemListView: View {
     let group: Group
     @State private var items: [Item] = []
+    @State private var inviteCode: String = ""
     @State private var newItemName: String = ""
     @State private var showAddItemPopup: Bool = false
     @State private var alertType: AlertType = .none
@@ -18,6 +19,19 @@ struct ItemListView: View {
 
     var body: some View {
         VStack {
+            if !inviteCode.isEmpty {
+                Text("招待コード: \(inviteCode)")
+                    .font(.headline)
+                    .padding()
+                    .onTapGesture {
+                        UIPasteboard.general.string = inviteCode
+                    }
+                    .foregroundColor(.blue)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+            }
+            
             if items.isEmpty {
                 Text("＋ボタンから買い物リストを追加しましょう")
                     .font(.headline)
@@ -54,6 +68,7 @@ struct ItemListView: View {
         .navigationTitle(group.name)
         .onAppear {
             fetchItems()
+            fetchInviteCode()
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -112,6 +127,16 @@ struct ItemListView: View {
             }
         }
     }
+
+    func fetchInviteCode() {
+        let db = Firestore.firestore()
+        db.collection("groups").document(group.id).getDocument { document, error in
+            if let document = document, document.exists {
+                inviteCode = document.data()? ["inviteCode"] as? String ?? ""
+            }
+        }
+    }
+
 
     func fetchItems() {
         let db = Firestore.firestore()

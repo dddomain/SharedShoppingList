@@ -15,71 +15,81 @@ struct SignUpView: View {
     @State private var errorMessage = ""
 
     var body: some View {
-        VStack {
-            TextField("First Name", text: $firstName)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-            TextField("Last Name", text: $lastName)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-            TextField("Display Name", text: $displayName)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-            DatePicker("Birthdate", selection: $birthdate, displayedComponents: .date)
-                .padding()
-            TextField("Email", text: $email)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-            SecureField("Password", text: $password)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-            SecureField("Confirm Password", text: $confirmPassword)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
+        ZStack {
+            Color(UIColor.systemGray6)
+                .edgesIgnoringSafeArea(.all) // ライトグレーの背景を全画面に適用
             
-            if !errorMessage.isEmpty {
-                Text(errorMessage)
-                    .foregroundColor(.red)
+            VStack {
+                Text("新規登録")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .padding(.bottom, 20)
+                
+                TextField("姓", text: $firstName)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
                     .padding()
-            }
+                TextField("名", text: $lastName)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+                TextField("表示名", text: $displayName)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+                DatePicker("誕生日", selection: $birthdate, displayedComponents: .date)
+                    .padding()
+                TextField("メールアドレス", text: $email)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+                SecureField("パスワード", text: $password)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+                SecureField("パスワード確認", text: $confirmPassword)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+                
+                if !errorMessage.isEmpty {
+                    Text(errorMessage)
+                        .foregroundColor(.red)
+                        .padding()
+                }
 
-            Button("Create Account") {
-                if password == confirmPassword {
-                    Auth.auth().createUser(withEmail: email, password: password) { authResult, error in
-                        if let user = authResult?.user {
-                            let changeRequest = user.createProfileChangeRequest()
-                            changeRequest.displayName = "\(firstName) \(lastName)"
-                            changeRequest.commitChanges { error in
-                                if let error = error {
-                                    errorMessage = "Failed to update display name: \(error.localizedDescription)"
-                                } else {
-                                    let db = Firestore.firestore()
-                                    db.collection("users").document(user.uid).setData([
-                                        "firstName": firstName,
-                                        "lastName": lastName,
-                                        "displayName": displayName,
-                                        "birthdate": Timestamp(date: birthdate),
-                                        "email": email
-                                    ]) { error in
-                                        if let error = error {
-                                            errorMessage = "Failed to save user data: \(error.localizedDescription)"
-                                        } else {
-                                            isLoggedIn = true
+                Button("アカウントを作成") {
+                    if password == confirmPassword {
+                        Auth.auth().createUser(withEmail: email, password: password) { authResult, error in
+                            if let user = authResult?.user {
+                                let changeRequest = user.createProfileChangeRequest()
+                                changeRequest.displayName = "\(firstName) \(lastName)"
+                                changeRequest.commitChanges { error in
+                                    if let error = error {
+                                        errorMessage = "表示名の更新に失敗しました: \(error.localizedDescription)"
+                                    } else {
+                                        let db = Firestore.firestore()
+                                        db.collection("users").document(user.uid).setData([
+                                            "firstName": firstName,
+                                            "lastName": lastName,
+                                            "displayName": displayName,
+                                            "birthdate": Timestamp(date: birthdate),
+                                            "email": email
+                                        ]) { error in
+                                            if let error = error {
+                                                errorMessage = "ユーザー情報の保存に失敗しました: \(error.localizedDescription)"
+                                            } else {
+                                                isLoggedIn = true
+                                            }
                                         }
                                     }
                                 }
+                            } else if let error = error {
+                                errorMessage = error.localizedDescription
                             }
-                        } else if let error = error {
-                            errorMessage = error.localizedDescription
                         }
+                    } else {
+                        errorMessage = "パスワードが一致しません。"
                     }
-                } else {
-                    errorMessage = "Passwords do not match."
                 }
+                .padding()
             }
             .padding()
         }
-        .navigationTitle("Sign Up")
-        .padding()
+        .navigationTitle("")
     }
 }

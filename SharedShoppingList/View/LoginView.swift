@@ -1,3 +1,4 @@
+//LoginView
 import SwiftUI
 import FirebaseAuth
 
@@ -8,29 +9,40 @@ struct LoginView: View {
     @State private var showSignUp = false
 
     var body: some View {
-        VStack {
-            TextField("Email", text: $email)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
-            SecureField("Password", text: $password)
-                .textFieldStyle(RoundedBorderTextFieldStyle())
+        ZStack {
+            Color(UIColor.systemGray6)
+                .edgesIgnoringSafeArea(.all) // ライトグレーの背景を全画面に適用
+
+            VStack {
+                Text("ログイン")
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .padding(.bottom, 20)
+
+                TextField("メールアドレス", text: $email)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+                SecureField("パスワード", text: $password)
+                    .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .padding()
+
+                Button("ログイン") {
+                    Auth.auth().signIn(withEmail: email, password: password) { authResult, error in
+                        if authResult != nil {
+                            isLoggedIn = true
+                        }
+                    }
+                }
                 .padding()
 
-            Button("Login") {
-                Auth.auth().signIn(withEmail: email, password: password) { authResult, error in
-                    if authResult != nil {
-                        isLoggedIn = true
-                    }
+                Button("新規登録") {
+                    showSignUp = true
+                }
+                .sheet(isPresented: $showSignUp) {
+                    SignUpView(isLoggedIn: $isLoggedIn)
                 }
             }
             .padding()
-
-            Button("Sign Up") {
-                showSignUp = true
-            }
-            .sheet(isPresented: $showSignUp) {
-                SignUpView(isLoggedIn: $isLoggedIn)
-            }
         }
         .previewLayout(.sizeThatFits)
     }

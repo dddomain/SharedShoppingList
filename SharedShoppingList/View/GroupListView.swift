@@ -59,14 +59,16 @@ struct GroupListView: View {
         }
     }
 
-    // グループをFirestoreに追加（作成ユーザー情報を含む）
+    // グループをFirestoreに追加（作成ユーザー情報と招待コードを含む）
     func addGroup() {
         guard !newGroupName.isEmpty, let userId = session.user?.uid else { return }
         let db = Firestore.firestore()
         let newGroupRef = db.collection("groups").document()
+        let inviteCode = generateInviteCode()
         let groupData: [String: Any] = [
             "name": newGroupName,
-            "createdBy": userId
+            "createdBy": userId,
+            "inviteCode": inviteCode
         ]
         newGroupRef.setData(groupData) { error in
             if error == nil {
@@ -74,6 +76,12 @@ struct GroupListView: View {
                 newGroupName = ""
             }
         }
+    }
+
+    // 8桁のランダムな招待コードを生成
+    func generateInviteCode() -> String {
+        let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        return String((0..<8).map { _ in letters.randomElement()! })
     }
 
     // Firestoreからログインユーザーが作成したグループを取得

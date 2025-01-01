@@ -307,43 +307,4 @@ struct GroupListView: View {
             }
         }
     }
-
-    func showAlert(title: String, message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-            windowScene.windows.first?.rootViewController?.present(alert, animated: true)
-        }
-    }
-
-    func showAlertWithActions(title: String, message: String, primaryTitle: String, secondaryTitle: String, primaryAction: @escaping () -> Void) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: primaryTitle, style: .default, handler: { _ in
-            primaryAction()
-        }))
-        alert.addAction(UIAlertAction(title: secondaryTitle, style: .cancel))
-
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-            windowScene.windows.first?.rootViewController?.present(alert, animated: true)
-        }
-    }
-
-    func showConfirmationAlert(title: String, message: String, confirmAction: @escaping () -> Void) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel))
-        alert.addAction(UIAlertAction(title: "参加", style: .default, handler: { _ in
-            confirmAction()
-        }))
-
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-            windowScene.windows.first?.rootViewController?.present(alert, animated: true)
-        }
-    }
-
-    // グループへのナビゲーション
-    func navigateToGroup(groupId: String) {
-        // グループ一覧から対象グループへナビゲートする処理を記述
-        print("グループ \(groupId) へ移動します。")
-    }
 }

@@ -88,29 +88,63 @@ struct ItemListView: View {
             }
         }
         .sheet(isPresented: $showAddItemPopup) {
-            VStack {
-                Text("新しいアイテムを追加")
-                    .font(.headline)
+            NavigationView {
+                ScrollView {
+                    VStack(spacing: 16) {
+                        Section(header: Text("基本情報").font(.headline)) {
+                            TextField("アイテム名", text: $newItemName)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .padding()
+                            
+                            TextField("購入できる場所", text: $newItemLocation)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .padding()
+                            
+                            TextField("URL", text: $newItemURL)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .padding()
+                        }
+                        
+                        Section(header: Text("追加情報").font(.headline)) {
+                            TextField("個数", text: $newItemQuantity)
+                                .keyboardType(.numberPad)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .padding()
+                            
+                            DatePicker("購入期限", selection: $newItemDeadline, displayedComponents: .date)
+                                .padding()
+                            
+                            TextField("メモ", text: $newItemMemo)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .padding()
+                        }
+                        
+                        Button(action: {
+                            addItem()
+                            showAddItemPopup = false
+                        }) {
+                            Text("追加")
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(newItemName.isEmpty || newItemQuantity.isEmpty ? Color.gray : Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(10)
+                        }
+                        .disabled(newItemName.isEmpty || newItemQuantity.isEmpty)
+                        
+                        Button("キャンセル") {
+                            showAddItemPopup = false
+                        }
+                        .foregroundColor(.red)
+                        .padding()
+                    }
                     .padding()
-                TextField("アイテム名", text: $newItemName)
-                    TextField("購入できる場所", text: $newItemLocation)
-                    TextField("URL", text: $newItemURL)
-                    TextField("個数", text: $newItemQuantity)
-                    DatePicker("購入期限", selection: $newItemDeadline, displayedComponents: .date)
-                    TextField("メモ", text: $newItemMemo)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-                Button("追加") {
-                    addItem()
-                    showAddItemPopup = false
                 }
-                .padding()
-                Button("キャンセル") {
+                .navigationTitle("新しいアイテムを追加")
+                .navigationBarItems(leading: Button("閉じる") {
                     showAddItemPopup = false
-                }
-                .padding()
+                })
             }
-            .padding()
         }
         .alert(item: $selectedItem) { item in
             switch alertType {
@@ -178,26 +212,34 @@ struct ItemListView: View {
     }
 
     func addItem() {
-        guard !newItemName.isEmpty else { return }
+        guard !newItemName.isEmpty, let quantity = Int(newItemQuantity), quantity > 0 else {
+            print("入力データが不正です。")
+            return
+        }
+        
         let db = Firestore.firestore()
         let newItemRef = db.collection("groups").document(group.id).collection("items").document()
         let maxOrder = (items.max(by: { $0.order < $1.order })?.order ?? 0) + 1
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
+        
         let itemData: [String: Any] = [
             "name": newItemName,
             "purchased": false,
             "order": maxOrder,
             "location": newItemLocation,
             "url": newItemURL,
-            "quantity": Int(newItemQuantity) ?? 1,
+            "quantity": quantity,
             "deadline": Timestamp(date: newItemDeadline),
             "memo": newItemMemo,
             "registeredAt": formatter.string(from: Date()),
             "registrant": Auth.auth().currentUser?.uid ?? "unknown"
         ]
+        
         newItemRef.setData(itemData) { error in
-            if error == nil {
+            if let error = error {
+                print("Firestoreへの保存に失敗: \(error.localizedDescription)")
+            } else {
                 items.append(Item(
                     id: newItemRef.documentID,
                     name: newItemName,
@@ -205,7 +247,7 @@ struct ItemListView: View {
                     order: maxOrder,
                     location: newItemLocation,
                     url: newItemURL,
-                    quantity: Int(newItemQuantity) ?? 1,
+                    quantity: quantity,
                     deadline: formatter.string(from: newItemDeadline),
                     memo: newItemMemo,
                     registeredAt: formatter.string(from: Date()),
@@ -213,10 +255,23 @@ struct ItemListView: View {
                     buyer: nil,
                     purchasedAt: nil
                 ))
-                newItemName = ""
+                
+                // フォームの入力値をリセット
+                resetForm()
             }
         }
     }
+
+    // フォームリセット関数
+    func resetForm() {
+        newItemName = ""
+        newItemLocation = ""
+        newItemURL = ""
+        newItemQuantity = "1"
+        newItemDeadline = Date()
+        newItemMemo = ""
+    }
+
 
     func toggleItem(_ item: Item, toPurchased: Bool) {
         let db = Firestore.firestore()

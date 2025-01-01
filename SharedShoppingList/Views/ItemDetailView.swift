@@ -33,10 +33,11 @@ struct ItemDetailView: View {
     func fetchItemDetails() {
         let db = Firestore.firestore()
         db.collection("groups").document(group.id).collection("items").document(item.id).getDocument { document, error in
-            if let error = error {
+            if let document = document, document.exists {
+                itemDetails = document.data() ?? [:]
+            } else {
                 itemDetails = [:]
                 itemDetails["error"] = "データ取得に失敗しました"
-            } else {
                 print("アイテムの詳細取得に失敗しました: \(error?.localizedDescription ?? "不明なエラー")")
             }
         }
@@ -56,4 +57,3 @@ struct DetailRow: View {
         }
     }
 }
-

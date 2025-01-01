@@ -15,6 +15,8 @@ struct GroupListView: View {
     @State private var displayName: String = ""
     @State private var email: String = ""
     @State private var birthdate: String = ""
+    
+    @State private var errorMessage: String? = nil
 
     var body: some View {
         VStack {
@@ -44,15 +46,25 @@ struct GroupListView: View {
                     Text("招待コードを入力")
                         .font(.headline)
                         .padding()
+                    
                     TextField("招待コード", text: $inviteCodeInput)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                         .padding()
+
+                    if let error = errorMessage {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .padding(.bottom)
+                    }
+
                     Button("参加") {
                         joinGroupWithInviteCode()
                     }
                     .padding()
+
                     Button("キャンセル") {
                         showJoinGroupPopup = false
+                        errorMessage = nil  // シートを閉じる際にエラーメッセージをリセット
                     }
                     .padding()
                 }
@@ -223,26 +235,109 @@ struct GroupListView: View {
 
     func joinGroupWithInviteCode() {
         guard !inviteCodeInput.isEmpty, let userId = session.user?.uid else { return }
+        
+        // 6桁バリデーション
+        guard inviteCodeInput.count == 8 else {
+            errorMessage = "招待コードは8桁です。"
+            return
+        }
+
         let db = Firestore.firestore()
         
         db.collection("groups")
             .whereField("inviteCode", isEqualTo: inviteCodeInput)
             .getDocuments { snapshot, error in
-                if let documents = snapshot?.documents, let document = documents.first {
-                    let groupId = document.documentID
-                    db.collection("groups").document(groupId).updateData([
-                        "members": FieldValue.arrayUnion([userId])
-                    ]) { error in
-                        if error == nil {
-                            fetchGroups()  // グループリストを更新
-                            inviteCodeInput = ""
-                            showJoinGroupPopup = false
-                        }
-                    }
+                if let error = error {
+                    print("エラーが発生しました: \(error.localizedDescription)")
+                    errorMessage = "エラーが発生しました。"
+                    return
+                }
+                
+                guard let documents = snapshot?.documents, let document = documents.first else {
+                    errorMessage = "グループが見つかりません。"
+                    return
+                }
+
+                let data = document.data()
+                let groupId = document.documentID
+                let groupName = data["name"] as? String ?? "不明なグループ"
+
+                // すでに参加済みかチェック
+                if let members = data["members"] as? [String], members.contains(userId) {
+                    errorMessage = "すでに参加済みです。(\(groupName))"
                 } else {
-                    print("招待コードが無効です")
+                    // 参加処理
+                    joinGroup(groupId: groupId, userId: userId)
                 }
             }
     }
 
+    // グループに参加する処理
+    func joinGroup(groupId: String, userId: String) {
+        let db = Firestore.firestore()
+        db.collection("groups").document(groupId).updateData([
+            "members": FieldValue.arrayUnion([userId])
+        ]) { error in
+            if error == nil {
+                fetchGroups()
+                inviteCodeInput = ""
+                showAlert(title: "成功", message: "グループに参加しました。")
+                showJoinGroupPopup = false
+            } else {
+                showAlert(title: "エラー", message: "グループへの参加に失敗しました。")
+            }
+        }
+    }
+
+    // Firestoreからユーザーの表示名を取得
+    func fetchUserDisplayName(userId: String, completion: @escaping (String?) -> Void) {
+        let db = Firestore.firestore()
+        db.collection("users").document(userId).getDocument { document, error in
+            if let document = document, document.exists {
+                let displayName = document.data()?["displayName"] as? String
+                completion(displayName)
+            } else {
+                completion(nil)
+            }
+        }
+    }
+
+    func showAlert(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            windowScene.windows.first?.rootViewController?.present(alert, animated: true)
+        }
+    }
+
+    func showAlertWithActions(title: String, message: String, primaryTitle: String, secondaryTitle: String, primaryAction: @escaping () -> Void) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: primaryTitle, style: .default, handler: { _ in
+            primaryAction()
+        }))
+        alert.addAction(UIAlertAction(title: secondaryTitle, style: .cancel))
+
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            windowScene.windows.first?.rootViewController?.present(alert, animated: true)
+        }
+    }
+
+    func showConfirmationAlert(title: String, message: String, confirmAction: @escaping () -> Void) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "キャンセル", style: .cancel))
+        alert.addAction(UIAlertAction(title: "参加", style: .default, handler: { _ in
+            confirmAction()
+        }))
+
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+            windowScene.windows.first?.rootViewController?.present(alert, animated: true)
+        }
+    }
+
+    // グループへのナビゲーション
+    func navigateToGroup(groupId: String) {
+        // グループ一覧から対象グループへナビゲートする処理を記述
+        print("グループ \(groupId) へ移動します。")
+    }
 }

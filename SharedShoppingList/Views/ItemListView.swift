@@ -89,34 +89,37 @@ struct ItemListView: View {
         }
         .sheet(isPresented: $showAddItemPopup) {
             NavigationView {
-                Form {
-                    // 基本情報セクション
-                    Section(header: Text("基本情報").font(.headline)) {
-                        TextField("アイテム名", text: $newItemName)
+                VStack {
+                    Form {
+                        // 基本情報セクション
+                        Section(header: Text("基本情報").font(.headline)) {
+                            TextField("アイテム名", text: $newItemName)
+                            
+                            TextField("購入できる場所", text: $newItemLocation)
+                            
+                            TextField("URL", text: $newItemURL)
+                                .keyboardType(.URL)
+                            
+                            TextField("個数", text: $newItemQuantity)
+                                .keyboardType(.numberPad)
+                        }
                         
-                        TextField("購入できる場所", text: $newItemLocation)
-                        
-                        TextField("URL", text: $newItemURL)
-                            .keyboardType(.URL)
-                        
-                        TextField("個数", text: $newItemQuantity)
-                            .keyboardType(.numberPad)
+                        // 購入期限セクション
+                        Section(header: Text("購入期限").font(.headline)) {
+                            Picker("購入期限の設定", selection: $shouldSetDeadline) {
+                                Text("設定しない").tag(false)
+                                Text("設定する").tag(true)
+                            }
+                            .pickerStyle(SegmentedPickerStyle())
+                            
+                            if shouldSetDeadline {
+                                DatePicker("期限日", selection: $newItemDeadline, displayedComponents: .date)
+                            }
+                        }
                     }
                     
-                    // 購入期限セクション
-                    Section(header: Text("購入期限").font(.headline)) {
-                        Picker("購入期限の設定", selection: $shouldSetDeadline) {
-                            Text("設定しない").tag(false)
-                            Text("設定する").tag(true)
-                        }
-                        .pickerStyle(SegmentedPickerStyle())
-                        
-                        if shouldSetDeadline {
-                            DatePicker("期限日", selection: $newItemDeadline, displayedComponents: .date)
-                        }
-                    }
-                    // 追加・キャンセルボタン
-                    Section {
+                    // 追加・キャンセルボタンをフォーム外に配置
+                    VStack {
                         Button(action: {
                             addItem()
                             showAddItemPopup = false
@@ -127,6 +130,10 @@ struct ItemListView: View {
                                     .bold()
                                 Spacer()
                             }
+                            .padding()
+                            .background(newItemName.isEmpty || newItemQuantity.isEmpty ? Color.gray : Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
                         }
                         .disabled(newItemName.isEmpty || newItemQuantity.isEmpty)
                         
@@ -134,7 +141,9 @@ struct ItemListView: View {
                             showAddItemPopup = false
                         }
                         .foregroundColor(.red)
+                        .padding(10)
                     }
+                    .padding(.horizontal)
                 }
                 .navigationTitle("新しいアイテムを追加")
                 .navigationBarItems(leading: Button("閉じる") {

@@ -1,6 +1,6 @@
-//ContentView.swift
 import SwiftUI
 import FirebaseAuth
+import FirebaseFirestore
 
 struct ContentView: View {
     @EnvironmentObject var session: SessionManager
@@ -9,10 +9,17 @@ struct ContentView: View {
         if session.isLoggedIn {
             TabView {
                 NavigationView {
-                    GroupListView()
+                    HomeView()
                 }
                 .tabItem {
                     Label("ホーム", systemImage: "house")
+                }
+
+                NavigationView {
+                    GroupListView()
+                }
+                .tabItem {
+                    Label("追加", systemImage: "plus.circle")
                 }
 
                 NavigationView {
@@ -25,11 +32,5 @@ struct ContentView: View {
         } else {
             LoginView(isLoggedIn: $session.isLoggedIn)
         }
-    }
-}
-
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        ContentView().environmentObject(SessionManager())
     }
 }

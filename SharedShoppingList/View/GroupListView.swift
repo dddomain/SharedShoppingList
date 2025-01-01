@@ -281,14 +281,20 @@ struct GroupListView: View {
             if error == nil {
                 fetchGroups()
                 inviteCodeInput = ""
-                showAlert(title: "成功", message: "グループに参加しました。")
                 showJoinGroupPopup = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    let alert = UIAlertController(title: "成功", message: "グループに参加しました。", preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: "OK", style: .default))
+                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                        windowScene.windows.first?.rootViewController?.present(alert, animated: true)
+                    }
+                }
             } else {
-                showAlert(title: "エラー", message: "グループへの参加に失敗しました。")
+                errorMessage = "グループへの参加に失敗しました。"
             }
         }
     }
-
+    
     // Firestoreからユーザーの表示名を取得
     func fetchUserDisplayName(userId: String, completion: @escaping (String?) -> Void) {
         let db = Firestore.firestore()

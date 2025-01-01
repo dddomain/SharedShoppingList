@@ -11,6 +11,7 @@ enum AlertType {
 
 struct ItemListView: View {
     let group: Group
+    @Environment(\.editMode) private var editMode
     @State private var items: [Item] = []
     @State private var inviteCode: String = ""
     @State private var newItemName: String = ""
@@ -25,22 +26,6 @@ struct ItemListView: View {
 
     var body: some View {
         VStack {
-            if !inviteCode.isEmpty {
-                HStack {
-                    Text("招待コード: \(inviteCode)")
-                        .font(.headline)
-                        .foregroundColor(.gray)
-                    Spacer()
-                    Image(systemName: "doc.on.doc")
-                        .foregroundColor(.gray)
-                        .onTapGesture {
-                            UIPasteboard.general.string = inviteCode
-                        }
-                }
-                .padding(.vertical, 8)
-                .padding(.horizontal)
-            }
-            
             if items.isEmpty {
                 Text("＋ボタンから買い物リストを追加しましょう")
                     .font(.headline)
@@ -77,13 +62,26 @@ struct ItemListView: View {
         }
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                EditButton()
+                Button(action: {
+                    if editMode?.wrappedValue == .active {
+                        editMode?.wrappedValue = .inactive
+                    } else {
+                        editMode?.wrappedValue = .active
+                    }
+                }) {
+                    Image(systemName: editMode?.wrappedValue == .active ? "checkmark" : "pencil")
+                }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button(action: {
                     showAddItemPopup = true
                 }) {
                     Image(systemName: "plus")
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                NavigationLink(destination: GroupDetailView(group: group)) {
+                    Image(systemName: "line.3.horizontal")
                 }
             }
         }

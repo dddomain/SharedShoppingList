@@ -71,7 +71,7 @@ struct GroupListView: View {
                 .padding()
             }
         }
-        .navigationTitle("グループ一覧")
+        .navigationTitle("所属グループ")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 EditButton()

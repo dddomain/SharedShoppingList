@@ -21,6 +21,8 @@ struct ItemListView: View {
     @State private var newItemDeadline: Date = Date()
     @State private var newItemMemo: String = ""
     @State private var showAddItemPopup: Bool = false
+    @State private var shouldSetDeadline: Bool = false
+    @State private var selectedImage: UIImage? = nil
     @State private var alertType: AlertType = .none
     @State private var selectedItem: Item? = nil
 
@@ -87,46 +89,44 @@ struct ItemListView: View {
         }
         .sheet(isPresented: $showAddItemPopup) {
             NavigationView {
-                ScrollView {
-                    VStack(spacing: 16) {
-                        Section(header: Text("基本情報").font(.headline)) {
-                            TextField("アイテム名", text: $newItemName)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding()
-                            
-                            TextField("購入できる場所", text: $newItemLocation)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding()
-                            
-                            TextField("URL", text: $newItemURL)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding()
-                        }
+                Form {
+                    // 基本情報セクション
+                    Section(header: Text("基本情報").font(.headline)) {
+                        TextField("アイテム名", text: $newItemName)
                         
-                        Section(header: Text("追加情報").font(.headline)) {
-                            TextField("個数", text: $newItemQuantity)
-                                .keyboardType(.numberPad)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding()
-                            
-                            DatePicker("購入期限", selection: $newItemDeadline, displayedComponents: .date)
-                                .padding()
-                            
-                            TextField("メモ", text: $newItemMemo)
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .padding()
-                        }
+                        TextField("購入できる場所", text: $newItemLocation)
                         
+                        TextField("URL", text: $newItemURL)
+                            .keyboardType(.URL)
+                        
+                        TextField("個数", text: $newItemQuantity)
+                            .keyboardType(.numberPad)
+                    }
+                    
+                    // 購入期限セクション
+                    Section(header: Text("購入期限").font(.headline)) {
+                        Picker("購入期限の設定", selection: $shouldSetDeadline) {
+                            Text("設定しない").tag(false)
+                            Text("設定する").tag(true)
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        
+                        if shouldSetDeadline {
+                            DatePicker("期限日", selection: $newItemDeadline, displayedComponents: .date)
+                        }
+                    }
+                    // 追加・キャンセルボタン
+                    Section {
                         Button(action: {
                             addItem()
                             showAddItemPopup = false
                         }) {
-                            Text("追加")
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(newItemName.isEmpty || newItemQuantity.isEmpty ? Color.gray : Color.blue)
-                                .foregroundColor(.white)
-                                .cornerRadius(10)
+                            HStack {
+                                Spacer()
+                                Text("追加")
+                                    .bold()
+                                Spacer()
+                            }
                         }
                         .disabled(newItemName.isEmpty || newItemQuantity.isEmpty)
                         
@@ -134,9 +134,7 @@ struct ItemListView: View {
                             showAddItemPopup = false
                         }
                         .foregroundColor(.red)
-                        .padding()
                     }
-                    .padding()
                 }
                 .navigationTitle("新しいアイテムを追加")
                 .navigationBarItems(leading: Button("閉じる") {

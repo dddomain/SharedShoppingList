@@ -18,21 +18,12 @@ struct HomeView: View {
     var body: some View {
         List {
             ForEach(items) { item in
-                HStack {
-                    Image(systemName: item.purchased ? "checkmark.circle.fill" : "circle")
-                        .onTapGesture {
-                            selectedItem = item
-                            alertType = item.purchased ? .unpurchase : .purchase
-                        }
-                    NavigationLink(destination: ItemDetailView(group: groups[item.groupId ?? ""] ?? Group(id: "", name: "不明", inviteCode: ""), item: item)) {
-                        VStack(alignment: .leading) {
-                            Text(item.name)
-                                .font(.headline)
-                            Text(groups[item.groupId ?? ""]?.name ?? "不明なグループ")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                        }
-                    }
+                let groupName = groups[item.groupId ?? ""]?.name ?? "不明なグループ"
+                let groupMembers = groups[item.groupId ?? ""]?.members ?? []  // membersを取得
+
+                ItemRowView(item: item, groupName: groupName, members: groupMembers) {
+                    selectedItem = item
+                    alertType = item.purchased ? .unpurchase : .purchase
                 }
             }
         }
@@ -139,7 +130,8 @@ struct HomeView: View {
                 return Group(
                     id: doc.documentID,
                     name: data["name"] as? String ?? "",
-                    inviteCode: data["inviteCode"] as? String ?? ""
+                    inviteCode: data["inviteCode"] as? String ?? "",
+                    members: data["members"] as? [String] ?? []
                 )
             }
             

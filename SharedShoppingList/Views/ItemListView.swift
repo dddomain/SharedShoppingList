@@ -47,7 +47,7 @@ struct ItemListView: View {
                                         alertType = .purchase
                                     }
                                 }
-                            NavigationLink(destination: ItemDetailView(group: Group(id: group.id, name: group.name, inviteCode: group.inviteCode), item: item)) {
+                            NavigationLink(destination: ItemDetailView(group: Group(id: group.id, name: group.name, inviteCode: group.inviteCode, members: group.members), item: item)) {
                                 Text(item.name)
                             }
                         }

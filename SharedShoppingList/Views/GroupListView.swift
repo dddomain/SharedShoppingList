@@ -29,6 +29,20 @@ struct GroupListView: View {
                             .foregroundColor(.gray)
 
                     }
+                    // メンバーの displayName をタグ風に表示
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack {
+                            ForEach(group.memberDisplayNames, id: \.self) { displayName in
+                                Text(displayName)
+                                    .font(.caption)
+                                    .foregroundColor(.blue)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(Color.blue.opacity(0.1))
+                                    .cornerRadius(8)
+                            }
+                        }
+                    }
                 }
                 .onDelete(perform: deleteGroup)
             }
@@ -153,26 +167,48 @@ struct GroupListView: View {
     }
 
     func fetchGroups() {
-        guard let userId = session.user?.uid else { return }
-        let db = Firestore.firestore()
-        
-        db.collection("groups")
-            .whereField("members", arrayContains: userId)  // 自分がメンバーであるグループのみ取得
-            .getDocuments { snapshot, error in
-                if let documents = snapshot?.documents {
-                    groups = documents.map { doc in
-                        let data = doc.data()
-                        return Group(
-                            id: doc.documentID,
-                            name: data["name"] as? String ?? "",
-                            inviteCode: data["inviteCode"] as? String ?? "",
-                            members: data["members"] as? [String] ?? []
-                        )
+            guard let userId = session.user?.uid else { return }
+            let db = Firestore.firestore()
+            
+            db.collection("groups")
+                .whereField("members", arrayContains: userId)
+                .getDocuments { snapshot, error in
+                    if let documents = snapshot?.documents {
+                        groups = documents.map { doc in
+                            let data = doc.data()
+                            var group = Group(
+                                id: doc.documentID,
+                                name: data["name"] as? String ?? "",
+                                inviteCode: data["inviteCode"] as? String ?? "",
+                                members: data["members"] as? [String] ?? []
+                            )
+                            fetchMemberDisplayNames(for: group)
+                            return group
+                        }
+                    } else {
+                        print("グループの取得に失敗しました: \(error?.localizedDescription ?? "不明なエラー")")
                     }
-                } else {
-                    print("グループの取得に失敗しました: \(error?.localizedDescription ?? "不明なエラー")")
+                }
+    }
+    
+    // 各グループのメンバーの displayName を取得
+    func fetchMemberDisplayNames(for group: Group) {
+        let db = Firestore.firestore()
+        var updatedGroup = group
+        updatedGroup.memberDisplayNames = []  // 一旦クリアしてから取得
+        
+        for memberId in group.members {
+            db.collection("users").document(memberId).getDocument { document, error in
+                if let document = document, document.exists {
+                    let displayName = document.data()?["displayName"] as? String ?? "不明"
+                    DispatchQueue.main.async {
+                        if let index = groups.firstIndex(where: { $0.id == group.id }) {
+                            groups[index].memberDisplayNames.append(displayName)
+                        }
+                    }
                 }
             }
+        }
     }
 
     func addGroup() {
@@ -188,7 +224,12 @@ struct GroupListView: View {
         ]
         newGroupRef.setData(groupData) { error in
             if error == nil {
-                groups.append(Group(id: newGroupRef.documentID, name: newGroupName, inviteCode: inviteCode))
+                groups.append(Group(
+                    id: newGroupRef.documentID,
+                    name: newGroupName,
+                    inviteCode: inviteCode,
+                    members: [userId]  // 作成者を初期メンバーとして追加
+                ))
                 newGroupName = ""
             }
         }

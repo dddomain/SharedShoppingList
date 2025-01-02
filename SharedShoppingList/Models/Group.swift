@@ -4,5 +4,6 @@ struct Group: Identifiable {
     var id: String
     var name: String
     var inviteCode: String
-    var members: [String] = []
+    var members: [String]
+    var memberDisplayNames: [String] = []  // メンバーのdisplayNameを格納
 }

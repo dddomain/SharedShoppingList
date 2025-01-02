@@ -73,20 +73,20 @@ struct GroupListView: View {
         }
         .navigationTitle("所属グループ")
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                EditButton()
-            }
             ToolbarItem(placement: .navigationBarLeading) {
                 Menu {
                     Button(action: {
-                        // プロフィール画面に遷移
                         session.showProfile = true
-                        fetchUserInfo()
+                        UserInfoManager.fetchUserInfo { name, display, mail, birth in
+                            self.userName = name
+                            self.displayName = display
+                            self.email = mail
+                            self.birthdate = birth
+                        }
                     }) {
                         Label("プロフィールを見る", systemImage: "person")
                     }
                     Button(action: {
-                        // ログアウト処理
                         do {
                             try Auth.auth().signOut()
                             session.isLoggedIn = false

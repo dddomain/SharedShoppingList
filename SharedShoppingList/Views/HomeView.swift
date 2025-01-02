@@ -3,11 +3,17 @@ import FirebaseAuth
 import FirebaseFirestore
 
 struct HomeView: View {
+    @EnvironmentObject var session: SessionManager
     @State private var items: [Item] = []
     @State private var groups: [String: Group] = [:]
     @State private var currentUserID: String? = Auth.auth().currentUser?.uid
     @State private var selectedItem: Item? = nil
     @State private var alertType: AlertType = .none
+
+    @State private var userName: String = ""
+    @State private var displayName: String = ""
+    @State private var email: String = ""
+    @State private var birthdate: String = ""
 
     var body: some View {
         List {
@@ -16,11 +22,7 @@ struct HomeView: View {
                     Image(systemName: item.purchased ? "checkmark.circle.fill" : "circle")
                         .onTapGesture {
                             selectedItem = item
-                            if item.purchased {
-                                alertType = .unpurchase
-                            } else {
-                                alertType = .purchase
-                            }
+                            alertType = item.purchased ? .unpurchase : .purchase
                         }
                     NavigationLink(destination: ItemDetailView(group: groups[item.groupId ?? ""] ?? Group(id: "", name: "不明", inviteCode: ""), item: item)) {
                         VStack(alignment: .leading) {
@@ -39,6 +41,40 @@ struct HomeView: View {
             Task {
                 await fetchUserGroupsAndItems()
             }
+        }
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Menu {
+                    Button(action: {
+                        session.showProfile = true
+                        UserInfoManager.fetchUserInfo { name, display, mail, birth in
+                            self.userName = name
+                            self.displayName = display
+                            self.email = mail
+                            self.birthdate = birth
+                        }
+                    }) {
+                        Label("プロフィールを見る", systemImage: "person")
+                    }
+                    Button(action: {
+                        do {
+                            try Auth.auth().signOut()
+                            session.isLoggedIn = false
+                        } catch {
+                            print("ログアウトに失敗しました: \(error.localizedDescription)")
+                        }
+                    }) {
+                        Label("ログアウトする", systemImage: "arrow.right.circle")
+                    }
+                } label: {
+                    HStack {
+                        Image(systemName: "person.circle")
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $session.showProfile) {
+            ProfileView(userName: userName, displayName: displayName, email: email, birthdate: birthdate)
         }
         .alert(item: $selectedItem) { item in
             switch alertType {

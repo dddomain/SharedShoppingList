@@ -1,4 +1,3 @@
-// SettingsView.swift
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
@@ -27,33 +26,14 @@ struct SettingsView: View {
             }
             .navigationTitle("設定")
             .onAppear {
-                fetchUserInfo()
-            }
-        }
-    }
-
-    func fetchUserInfo() {
-        guard let user = Auth.auth().currentUser else { return }
-        let db = Firestore.firestore()
-        db.collection("users").document(user.uid).getDocument { document, error in
-            if let document = document, document.exists {
-                let data = document.data()
-                userName = "\(data?["firstName"] as? String ?? "") \(data?["lastName"] as? String ?? "")"
-                displayName = data?["displayName"] as? String ?? ""
-                email = data?["email"] as? String ?? ""
-                if let timestamp = data?["birthdate"] as? Timestamp {
-                    let dateFormatter = DateFormatter()
-                    dateFormatter.dateStyle = .medium
-                    birthdate = dateFormatter.string(from: timestamp.dateValue())
+                UserInfoManager.fetchUserInfo { name, display, mail, birth in
+                    self.userName = name
+                    self.displayName = display
+                    self.email = mail
+                    self.birthdate = birth
+                    self.isLoading = false
                 }
             }
-            isLoading = false
         }
-    }
-}
-
-struct SettingsView_Previews: PreviewProvider {
-    static var previews: some View {
-        SettingsView()
     }
 }

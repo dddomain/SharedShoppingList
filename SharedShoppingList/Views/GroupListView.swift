@@ -212,27 +212,6 @@ struct GroupListView: View {
         return String((0..<8).map { _ in letters.randomElement()! })
     }
 
-    // Firestoreからログインユーザーが作成したグループを取得
-    func fetchUserGroups() {
-        guard let userId = session.user?.uid else { return }
-        let db = Firestore.firestore()
-        
-        db.collection("groups")
-            .whereField("createdBy", isEqualTo: userId)
-            .getDocuments { snapshot, error in
-                if let documents = snapshot?.documents {
-                    groups = documents.map { doc in
-                        let data = doc.data()
-                        return Group(
-                            id: doc.documentID,
-                            name: data["name"] as? String ?? "名前不明" ,
-                            inviteCode: data["inviteCode"] as? String ?? ""
-                        )
-                    }
-                }
-            }
-    }
-
     func joinGroupWithInviteCode() {
         guard !inviteCodeInput.isEmpty, let userId = session.user?.uid else { return }
         
@@ -291,19 +270,6 @@ struct GroupListView: View {
                 }
             } else {
                 errorMessage = "グループへの参加に失敗しました。"
-            }
-        }
-    }
-    
-    // Firestoreからユーザーの表示名を取得
-    func fetchUserDisplayName(userId: String, completion: @escaping (String?) -> Void) {
-        let db = Firestore.firestore()
-        db.collection("users").document(userId).getDocument { document, error in
-            if let document = document, document.exists {
-                let displayName = document.data()?["displayName"] as? String
-                completion(displayName)
-            } else {
-                completion(nil)
             }
         }
     }

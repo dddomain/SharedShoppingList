@@ -6,16 +6,31 @@ struct HomeView: View {
     @State private var items: [Item] = []
     @State private var groups: [String: Group] = [:]
     @State private var currentUserID: String? = Auth.auth().currentUser?.uid
+    @State private var selectedItem: Item? = nil
+    @State private var alertType: AlertType = .none
 
     var body: some View {
         List {
             ForEach(items) { item in
-                VStack(alignment: .leading) {
-                    Text(item.name)
-                        .font(.headline)
-                    Text(groups[item.groupId ?? ""]?.name ?? "不明なグループ")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                HStack {
+                    Image(systemName: item.purchased ? "checkmark.circle.fill" : "circle")
+                        .onTapGesture {
+                            selectedItem = item
+                            if item.purchased {
+                                alertType = .unpurchase
+                            } else {
+                                alertType = .purchase
+                            }
+                        }
+                    NavigationLink(destination: ItemDetailView(group: groups[item.groupId ?? ""] ?? Group(id: "", name: "不明", inviteCode: ""), item: item)) {
+                        VStack(alignment: .leading) {
+                            Text(item.name)
+                                .font(.headline)
+                            Text(groups[item.groupId ?? ""]?.name ?? "不明なグループ")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    }
                 }
             }
         }
@@ -25,15 +40,60 @@ struct HomeView: View {
                 await fetchUserGroupsAndItems()
             }
         }
+        .alert(item: $selectedItem) { item in
+            switch alertType {
+            case .purchase:
+                return Alert(
+                    title: Text("購入確認"),
+                    message: Text("購入済みとしてマークしますか？"),
+                    primaryButton: .default(Text("はい")) {
+                        toggleItem(item, toPurchased: true)
+                    },
+                    secondaryButton: .cancel(Text("いいえ"))
+                )
+            case .unpurchase:
+                return Alert(
+                    title: Text("未購入に戻す確認"),
+                    message: Text("未購入に戻しますか？"),
+                    primaryButton: .default(Text("はい")) {
+                        toggleItem(item, toPurchased: false)
+                    },
+                    secondaryButton: .cancel(Text("いいえ"))
+                )
+            case .none:
+                return Alert(title: Text("エラー"))
+            }
+        }
     }
 
-    // Firestoreからユーザーが所属するグループとアイテムを同時に取得
+    // アイテムの購入状態を切り替え
+    private func toggleItem(_ item: Item, toPurchased: Bool) {
+        let db = Firestore.firestore()
+        guard let groupId = item.groupId else { return }
+        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+        let previousState = items[index].purchased
+        items[index].purchased = toPurchased
+
+        db.collection("groups").document(groupId).collection("items").document(item.id).updateData([
+            "purchased": toPurchased
+        ]) { error in
+            if let error = error {
+                print("更新に失敗しました: \(error.localizedDescription)")
+                items[index].purchased = previousState
+            } else {
+                // 購入済みアイテムを非表示にする
+                items.removeAll { $0.purchased == true }
+            }
+            selectedItem = nil
+        }
+    }
+
+    // Firestoreからグループと未購入アイテムを取得
     private func fetchUserGroupsAndItems() async {
         guard let userID = currentUserID else { return }
         let db = Firestore.firestore()
 
         do {
-            // ユーザーがメンバーのグループを取得
             let groupSnapshot = try await db.collection("groups")
                 .whereField("members", arrayContains: userID)
                 .getDocuments()
@@ -47,12 +107,10 @@ struct HomeView: View {
                 )
             }
             
-            // グループ情報を辞書で管理
             DispatchQueue.main.async {
                 self.groups = Dictionary(uniqueKeysWithValues: fetchedGroups.map { ($0.id, $0) })
             }
             
-            // 未購入アイテムを取得
             var fetchedItems: [Item] = []
             for group in fetchedGroups {
                 let itemSnapshot = try await db.collection("groups")

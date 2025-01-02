@@ -21,7 +21,7 @@ struct HomeView: View {
                 let groupName = groups[item.groupId ?? ""]?.name ?? "不明なグループ"
                 let groupMembers = groups[item.groupId ?? ""]?.members ?? []  // membersを取得
 
-                ItemRowView(item: item, groupName: groupName, members: groupMembers) {
+                ItemRowView(item: item, groupName: groupName, members: groupMembers, context: "home") {
                     selectedItem = item
                     alertType = item.purchased ? .unpurchase : .purchase
                 }

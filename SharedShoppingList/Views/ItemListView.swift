@@ -37,21 +37,15 @@ struct ItemListView: View {
             } else {
                 List {
                     ForEach(items) { item in
-                        HStack {
-                            Image(systemName: item.purchased ? "checkmark.circle.fill" : "circle")
-                                .onTapGesture {
-                                    selectedItem = item
-                                    if item.purchased {
-                                        alertType = .unpurchase
-                                    } else {
-                                        alertType = .purchase
-                                    }
-                                }
-                            NavigationLink(destination: ItemDetailView(group: Group(id: group.id, name: group.name, inviteCode: group.inviteCode, members: group.members), item: item)) {
-                                Text(item.name)
-                            }
+                        ItemRowView(
+                            item: item,
+                            groupName: group.name,
+                            members: group.members,
+                            context: "list"  // ItemListViewでは"list"を渡す
+                        ) {
+                            selectedItem = item
+                            alertType = item.purchased ? .unpurchase : .purchase
                         }
-                        .contentShape(Rectangle())
                     }
                     .onDelete(perform: deleteItem)
                 }

@@ -20,9 +20,9 @@ struct ItemRowView: View {
                     HStack {
                         Text("個数: \(item.quantity)")
                             .foregroundColor(.primary)
-                        Text(item.deadline.isEmpty ? "期限なし" : "期限: \(item.deadline)")
+                        Text(item.deadline == nil ? "期限なし" : "期限: \(formatDate(item.deadline))")
                             .font(.caption)
-                            .foregroundColor(item.deadline.isEmpty ? .gray : .red)
+                            .foregroundColor(item.deadline == nil ? .gray : .red)
                     }
                     if context == "home" {
                         Text(groupName)
@@ -37,10 +37,18 @@ struct ItemRowView: View {
     }
     @ViewBuilder
     private func destinationView() -> some View {
-        if let groupId = item.groupId, !groupId.isEmpty {
-            ItemDetailView(group: Group(id: groupId, name: groupName, inviteCode: "", members: members), item: item)
+        if !item.groupId.isEmpty {
+            ItemDetailView(group: Group(id: item.groupId, name: groupName, inviteCode: "", members: members), item: item)
         } else {
             Text("グループ情報が存在しません").foregroundColor(.red)
         }
     }
+    
+    func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "未設定" }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
 }

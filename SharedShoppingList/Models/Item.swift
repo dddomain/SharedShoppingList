@@ -1,3 +1,4 @@
+
 import SwiftUI
 import FirebaseFirestore
 
@@ -9,13 +10,13 @@ struct Item: Identifiable {
     var location: String
     var url: String
     var quantity: Int
-    var deadline: String
+    var deadline: Date?
     var memo: String
-    var registeredAt: String
+    var registeredAt: Date
     var registrant: String
     var buyer: String?
-    var purchasedAt: String?
-    var groupId: String?
+    var purchasedAt: Date?  // 購入日もDate型に変更
+    var groupId: String
     
     init(
         id: String,
@@ -25,12 +26,12 @@ struct Item: Identifiable {
         location: String,
         url: String,
         quantity: Int,
-        deadline: String,
+        deadline: Timestamp,  // Timestamp型で受け取る
         memo: String,
-        registeredAt: String,
+        registeredAt: Date,
         registrant: String,
         buyer: String? = nil,
-        purchasedAt: String? = nil,
+        purchasedAt: Timestamp? = nil,  // Timestamp型をOptionalで受け取る
         groupId: String
     ) {
         self.id = id
@@ -40,12 +41,12 @@ struct Item: Identifiable {
         self.location = location
         self.url = url
         self.quantity = quantity
-        self.deadline = deadline
+        self.deadline = deadline.dateValue()  // TimestampからDate型へ変換
         self.memo = memo
         self.registeredAt = registeredAt
         self.registrant = registrant
         self.buyer = buyer
-        self.purchasedAt = purchasedAt
+        self.purchasedAt = purchasedAt?.dateValue()  // Optionalの購入日をDate型に変換
         self.groupId = groupId
     }
 }

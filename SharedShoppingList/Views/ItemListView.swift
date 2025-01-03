@@ -195,12 +195,12 @@ struct ItemListView: View {
                         location: data["location"] as? String ?? "",
                         url: data["url"] as? String ?? "",
                         quantity: data["quantity"] as? Int ?? 1,
-                        deadline: data["deadline"] as? String ?? "",
+                        deadline: data["deadline"] as? Timestamp ?? Timestamp(date: Date()),  // Timestampで受け取る
                         memo: data["memo"] as? String ?? "",
-                        registeredAt: data["registeredAt"] as? String ?? "",
+                        registeredAt: data["registeredAt"] as? Date ?? Date(),
                         registrant: data["registrant"] as? String ?? "",
                         buyer: data["buyer"] as? String,
-                        purchasedAt: data["purchasedAt"] as? String,
+                        purchasedAt: data["purchasedAt"] as? Timestamp,  // Optionalで受け取る
                         groupId: group.id
                     )
                 }
@@ -230,7 +230,7 @@ struct ItemListView: View {
             "location": newItemLocation,
             "url": newItemURL,
             "quantity": quantity,
-            "deadline": Timestamp(date: newItemDeadline),
+            "deadline": Timestamp(date: newItemDeadline),  // Timestamp型で保存
             "memo": newItemMemo,
             "registeredAt": formatter.string(from: Date()),
             "registrant": Auth.auth().currentUser?.uid ?? "unknown",
@@ -249,9 +249,9 @@ struct ItemListView: View {
                     location: newItemLocation,
                     url: newItemURL,
                     quantity: quantity,
-                    deadline: formatter.string(from: newItemDeadline),
+                    deadline: Timestamp(date: newItemDeadline),
                     memo: newItemMemo,
-                    registeredAt: formatter.string(from: Date()),
+                    registeredAt: Date(),
                     registrant: Auth.auth().currentUser?.uid ?? "unknown",
                     buyer: nil,
                     purchasedAt: nil,

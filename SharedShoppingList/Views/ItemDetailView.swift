@@ -17,9 +17,9 @@ struct ItemDetailView: View {
 
             Section(header: Text("購入情報").font(.headline)) {
                 DetailRow(label: "購入できる場所", value: itemDetails["location"] as? String ?? "")
-                DetailRow(label: "購入期限", value: itemDetails["deadline"] as? String ?? "")
+                DetailRow(label: "購入期限", value: formatDate(itemDetails["deadline"] as? Timestamp))  // Timestampからフォーマット
                 DetailRow(label: "購入者", value: displayNames[itemDetails["buyer"] as? String ?? ""] ?? "")
-                DetailRow(label: "購入日時", value: itemDetails["purchasedAt"] as? String ?? "")
+                DetailRow(label: "購入日時", value: formatDate(itemDetails["purchasedAt"] as? Timestamp))  // Timestampからフォーマット
             }
 
             Section(header: Text("登録情報").font(.headline)) {
@@ -72,5 +72,13 @@ struct ItemDetailView: View {
                 }
             }
         }
+    }
+    
+    func formatDate(_ timestamp: Timestamp?) -> String {
+        guard let timestamp = timestamp else { return "未設定" }
+        let date = timestamp.dateValue()
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 }

@@ -18,8 +18,8 @@ struct HomeView: View {
     var body: some View {
         List {
             ForEach(items) { item in
-                let groupName = groups[item.groupId ?? ""]?.name ?? "不明なグループ"
-                let groupMembers = groups[item.groupId ?? ""]?.members ?? []  // membersを取得
+                let groupName = groups[item.groupId]?.name ?? "不明なグループ"
+                let groupMembers = groups[item.groupId]?.members ?? []  // membersを取得
 
                 ItemRowView(item: item, groupName: groupName, members: groupMembers, context: "home") {
                     selectedItem = item
@@ -96,7 +96,7 @@ struct HomeView: View {
     // アイテムの購入状態を切り替え
     private func toggleItem(_ item: Item, toPurchased: Bool) {
         let db = Firestore.firestore()
-        guard let groupId = item.groupId else { return }
+        let groupId = item.groupId
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
         let previousState = items[index].purchased
         items[index].purchased = toPurchased
@@ -151,19 +151,19 @@ struct HomeView: View {
                     let data = doc.data()
                     return Item(
                         id: doc.documentID,
-                        name: data["name"] as? String ?? "不明なアイテム",
+                        name: data["name"] as? String ?? "",
                         purchased: data["purchased"] as? Bool ?? false,
                         order: data["order"] as? Int ?? 0,
-                        location: data["location"] as? String ?? "未登録",
+                        location: data["location"] as? String ?? "",
                         url: data["url"] as? String ?? "",
                         quantity: data["quantity"] as? Int ?? 1,
-                        deadline: data["deadline"] as? String ?? "未設定",
+                        deadline: data["deadline"] as? Timestamp ?? Timestamp(date: Date()),  // Timestampで受け取る
                         memo: data["memo"] as? String ?? "",
-                        registeredAt: data["registeredAt"] as? String ?? "",
+                        registeredAt: data["registeredAt"] as? Date ?? Date(),
                         registrant: data["registrant"] as? String ?? "",
                         buyer: data["buyer"] as? String,
-                        purchasedAt: data["purchasedAt"] as? String,
-                        groupId: data["groupId"] as? String ?? ""
+                        purchasedAt: data["purchasedAt"] as? Timestamp,  // Optionalで受け取る
+                        groupId: group.id
                     )
                 }
                 fetchedItems.append(contentsOf: items)

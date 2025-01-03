@@ -18,13 +18,14 @@ struct ItemListView: View {
     @State private var newItemLocation: String = ""
     @State private var newItemURL: String = ""
     @State private var newItemQuantity: String = "1"
-    @State private var newItemDeadline: Date = Date()
+    @State private var newItemDeadline: Date? = nil
     @State private var newItemMemo: String = ""
     @State private var showAddItemPopup: Bool = false
     @State private var shouldSetDeadline: Bool = false
     @State private var selectedImage: UIImage? = nil
     @State private var alertType: AlertType = .none
     @State private var selectedItem: Item? = nil
+    @State private var today: Date = Date()
 
     var body: some View {
         VStack {
@@ -107,7 +108,7 @@ struct ItemListView: View {
                             .pickerStyle(SegmentedPickerStyle())
                             
                             if shouldSetDeadline {
-                                DatePicker("期限日", selection: $newItemDeadline, displayedComponents: .date)
+                                DatePicker("期限日", selection: $today, displayedComponents: .date)
                             }
                         }
                     }
@@ -222,7 +223,7 @@ struct ItemListView: View {
         let maxOrder = (items.max(by: { $0.order < $1.order })?.order ?? 0) + 1
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
-        
+                
         var itemData: [String: Any] = [
             "name": newItemName,
             "purchased": false,
@@ -230,20 +231,18 @@ struct ItemListView: View {
             "location": newItemLocation,
             "url": newItemURL,
             "quantity": quantity,
-            "deadline": Timestamp(date: newItemDeadline),  // Timestamp型で保存
             "memo": newItemMemo,
             "registeredAt": formatter.string(from: Date()),
             "registrant": Auth.auth().currentUser?.uid ?? "unknown",
             "groupId": group.id
         ]
         
-        // 期限が設定されている場合のみ追加
         if shouldSetDeadline {
-            itemData["deadline"] = Timestamp(date: newItemDeadline)
+            itemData["deadline"] = Timestamp(date: today)
         } else {
-            itemData["deadline"] = nil
+            itemData["deadline"] = nil  // Firestoreにはnullが入る
         }
-        
+                
         newItemRef.setData(itemData) { error in
             if let error = error {
                 print("Firestoreへの保存に失敗: \(error.localizedDescription)")
@@ -256,7 +255,7 @@ struct ItemListView: View {
                     location: newItemLocation,
                     url: newItemURL,
                     quantity: quantity,
-                    deadline: Timestamp(date: newItemDeadline),
+                    deadline: shouldSetDeadline ? Timestamp(date: today) : nil,
                     memo: newItemMemo,
                     registeredAt: Date(),
                     registrant: Auth.auth().currentUser?.uid ?? "unknown",

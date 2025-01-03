@@ -20,9 +20,9 @@ struct ItemRowView: View {
                     HStack {
                         Text("個数: \(item.quantity)")
                             .foregroundColor(.primary)
-                        Text(item.deadline == nil ? "期限なし" : "期限: \(formatDate(item.deadline))")
-                            .font(.caption)
-                            .foregroundColor(item.deadline == nil ? .gray : .red)
+                        Text("期限: \(item.deadline != nil ? formatDate(item.deadline!) : "なし")")
+                            .font(.subheadline)
+                            .foregroundColor(.gray)
                     }
                     if context == "home" {
                         Text(groupName)

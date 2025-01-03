@@ -157,7 +157,7 @@ struct GroupListView: View {
                 if let documents = snapshot?.documents {
                     groups = documents.map { doc in
                         let data = doc.data()
-                        var group = Group(
+                        let group = Group(
                             id: doc.documentID,
                             name: data["name"] as? String ?? "",
                             inviteCode: data["inviteCode"] as? String ?? "",

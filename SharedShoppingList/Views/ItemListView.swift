@@ -200,7 +200,8 @@ struct ItemListView: View {
                         registeredAt: data["registeredAt"] as? String ?? "",
                         registrant: data["registrant"] as? String ?? "",
                         buyer: data["buyer"] as? String,
-                        purchasedAt: data["purchasedAt"] as? String
+                        purchasedAt: data["purchasedAt"] as? String,
+                        groupId: group.id
                     )
                 }
                 DispatchQueue.main.async {
@@ -232,7 +233,8 @@ struct ItemListView: View {
             "deadline": Timestamp(date: newItemDeadline),
             "memo": newItemMemo,
             "registeredAt": formatter.string(from: Date()),
-            "registrant": Auth.auth().currentUser?.uid ?? "unknown"
+            "registrant": Auth.auth().currentUser?.uid ?? "unknown",
+            "groupId": group.id
         ]
         
         newItemRef.setData(itemData) { error in
@@ -252,7 +254,8 @@ struct ItemListView: View {
                     registeredAt: formatter.string(from: Date()),
                     registrant: Auth.auth().currentUser?.uid ?? "unknown",
                     buyer: nil,
-                    purchasedAt: nil
+                    purchasedAt: nil,
+                    groupId: group.id
                 ))
                 
                 // フォームの入力値をリセット

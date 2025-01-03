@@ -15,7 +15,7 @@ struct Item: Identifiable {
     var registrant: String
     var buyer: String?
     var purchasedAt: String?
-    var groupId: String? = nil
+    var groupId: String?
     
     init(
         id: String,
@@ -30,7 +30,8 @@ struct Item: Identifiable {
         registeredAt: String,
         registrant: String,
         buyer: String? = nil,
-        purchasedAt: String? = nil
+        purchasedAt: String? = nil,
+        groupId: String
     ) {
         self.id = id
         self.name = name
@@ -45,32 +46,6 @@ struct Item: Identifiable {
         self.registrant = registrant
         self.buyer = buyer
         self.purchasedAt = purchasedAt
-        
-        // グループIDを取得してプロパティに格納
-        var item = self
-        fetchGroupId { fetchedGroupId in
-            item.groupId = fetchedGroupId
-        }
-    }
-    
-    // 非同期でグループIDを取得するメソッド
-    private func fetchGroupId(completion: @escaping (String?) -> Void) {
-        let db = Firestore.firestore()
-        
-        db.collection("groups").getDocuments { snapshot, error in
-            if let documents = snapshot?.documents {
-                for document in documents {
-                    let groupRef = db.collection("groups").document(document.documentID).collection("items").document(self.id)
-                    
-                    groupRef.getDocument { itemDoc, error in
-                        if itemDoc?.exists == true {
-                            completion(document.documentID)
-                            return
-                        }
-                    }
-                }
-            }
-            completion(nil)
-        }
+        self.groupId = groupId
     }
 }

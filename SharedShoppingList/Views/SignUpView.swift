@@ -78,7 +78,7 @@ struct SignUpView: View {
                 let changeRequest = user.createProfileChangeRequest()
                 changeRequest.displayName = displayName
                 changeRequest.commitChanges { error in
-                    if let error = error {
+                    if error != nil {
                         errorMessage = "表示名の更新に失敗しましたが、アカウントは作成されました。"
                     }
                     // 表示名更新後にFirestoreへデータを保存

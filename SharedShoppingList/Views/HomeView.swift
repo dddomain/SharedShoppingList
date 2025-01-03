@@ -162,7 +162,8 @@ struct HomeView: View {
                         registeredAt: data["registeredAt"] as? String ?? "",
                         registrant: data["registrant"] as? String ?? "",
                         buyer: data["buyer"] as? String,
-                        purchasedAt: data["purchasedAt"] as? String
+                        purchasedAt: data["purchasedAt"] as? String,
+                        groupId: data["groupId"] as? String ?? ""
                     )
                 }
                 fetchedItems.append(contentsOf: items)

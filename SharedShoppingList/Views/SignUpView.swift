@@ -13,11 +13,12 @@ struct SignUpView: View {
     @State private var displayName = ""
     @State private var birthdate = Date()
     @State private var errorMessage = ""
+    @State private var isProcessing = false  // 処理中フラグ
 
     var body: some View {
         ZStack {
             Color(UIColor.systemGray6)
-                .edgesIgnoringSafeArea(.all) // ライトグレーの背景を全画面に適用
+                .edgesIgnoringSafeArea(.all)
             
             VStack {
                 Text("新規登録")
@@ -25,71 +26,97 @@ struct SignUpView: View {
                     .fontWeight(.bold)
                     .padding(.bottom, 20)
                 
-                TextField("姓", text: $firstName)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-                TextField("名", text: $lastName)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-                TextField("表示名", text: $displayName)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-                DatePicker("誕生日", selection: $birthdate, displayedComponents: .date)
-                    .padding()
-                TextField("メールアドレス", text: $email)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-                SecureField("パスワード", text: $password)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-                SecureField("パスワード確認", text: $confirmPassword)
-                    .textFieldStyle(RoundedBorderTextFieldStyle())
-                    .padding()
-                
+                SwiftUI.Group {
+                    TextField("姓", text: $firstName)
+                    TextField("名", text: $lastName)
+                    TextField("表示名", text: $displayName)
+                    DatePicker("誕生日", selection: $birthdate, displayedComponents: .date)
+                    TextField("メールアドレス", text: $email)
+                        .keyboardType(.emailAddress)
+                    SecureField("パスワード", text: $password)
+                    SecureField("パスワード確認", text: $confirmPassword)
+                }
+                .textFieldStyle(RoundedBorderTextFieldStyle())  // 正しくViewに適用
+                .padding()
+
+
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
                         .foregroundColor(.red)
                         .padding()
                 }
 
-                Button("アカウントを作成") {
-                    if password == confirmPassword {
-                        Auth.auth().createUser(withEmail: email, password: password) { authResult, error in
-                            if let user = authResult?.user {
-                                let changeRequest = user.createProfileChangeRequest()
-                                changeRequest.displayName = "\(firstName) \(lastName)"
-                                changeRequest.commitChanges { error in
-                                    if let error = error {
-                                        errorMessage = "表示名の更新に失敗しました: \(error.localizedDescription)"
-                                    } else {
-                                        let db = Firestore.firestore()
-                                        db.collection("users").document(user.uid).setData([
-                                            "firstName": firstName,
-                                            "lastName": lastName,
-                                            "displayName": displayName,
-                                            "birthdate": Timestamp(date: birthdate),
-                                            "email": email
-                                        ]) { error in
-                                            if let error = error {
-                                                errorMessage = "ユーザー情報の保存に失敗しました: \(error.localizedDescription)"
-                                            } else {
-                                                isLoggedIn = true
-                                            }
-                                        }
-                                    }
-                                }
-                            } else if let error = error {
-                                errorMessage = error.localizedDescription
-                            }
-                        }
-                    } else {
-                        errorMessage = "パスワードが一致しません。"
-                    }
+                Button(action: {
+                    registerUser()
+                }) {
+                    Text("アカウントを作成")
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(isFormValid() ? Color.blue : Color.gray)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
                 }
+                .disabled(!isFormValid() || isProcessing)  // バリデーションと処理中はボタン無効化
                 .padding()
             }
             .padding()
         }
         .navigationTitle("")
+    }
+
+    // ユーザー登録処理
+    private func registerUser() {
+        guard password == confirmPassword else {
+            errorMessage = "パスワードが一致しません。"
+            return
+        }
+
+        isProcessing = true
+        Auth.auth().createUser(withEmail: email, password: password) { authResult, error in
+            if let user = authResult?.user {
+                // まずFirestoreに即時保存
+                saveUserInfo(user)
+
+                // 表示名の更新は別途行う
+                let changeRequest = user.createProfileChangeRequest()
+                changeRequest.displayName = "\(firstName) \(lastName)"
+                changeRequest.commitChanges { error in
+                    if let error = error {
+                        errorMessage = "表示名の更新に失敗しましたが、アカウントは作成されました。"
+                    }
+                }
+            } else if let error = error {
+                errorMessage = "アカウント作成に失敗しました: \(error.localizedDescription)"
+                isProcessing = false
+            }
+        }
+    }
+
+    // Firestoreにユーザー情報を保存
+    private func saveUserInfo(_ user: User) {
+        let db = Firestore.firestore()
+        db.collection("users").document(user.uid).setData([
+            "firstName": firstName,
+            "lastName": lastName,
+            "displayName": "\(firstName) \(lastName)",
+            "birthdate": Timestamp(date: birthdate),
+            "email": email
+        ]) { error in
+            if let error = error {
+                errorMessage = "ユーザー情報の保存に失敗しました: \(error.localizedDescription)"
+                print("Firestore書き込みエラー: \(error)")  // エラー内容をログ出力
+            } else {
+                isLoggedIn = true
+                print("ユーザー情報が正常に保存されました")
+            }
+            isProcessing = false
+        }
+    }
+
+    // 入力バリデーション
+    private func isFormValid() -> Bool {
+        !email.isEmpty && !password.isEmpty && !confirmPassword.isEmpty &&
+        !firstName.isEmpty && !lastName.isEmpty && !displayName.isEmpty &&
+        password.count >= 6
     }
 }

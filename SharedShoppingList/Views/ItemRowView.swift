@@ -17,19 +17,19 @@ struct ItemRowView: View {
                 VStack(alignment: .leading) {
                     Text(item.name)
                         .font(.headline)
-                    
+                    HStack {
+                        Text("個数: \(item.quantity)")
+                            .foregroundColor(.primary)
+                        Text(item.deadline.isEmpty ? "期限なし" : "期限: \(item.deadline)")
+                            .font(.caption)
+                            .foregroundColor(item.deadline.isEmpty ? .gray : .red)
+                    }
                     if context == "home" {
                         Text(groupName)
                             .font(.caption)
                             .foregroundColor(.gray)
                     } else if context == "list" {
-                        HStack {
-                            Text("個数: \(item.quantity)")
-                                .foregroundColor(.primary)
-                            Text(item.deadline.isEmpty ? "期限なし" : "期限: \(item.deadline)")
-                                .font(.caption)
-                                .foregroundColor(item.deadline.isEmpty ? .gray : .red)
-                        }
+                        // こちらのみで表示する情報はなし。
                     }
                 }
             }

@@ -74,16 +74,15 @@ struct SignUpView: View {
         isProcessing = true
         Auth.auth().createUser(withEmail: email, password: password) { authResult, error in
             if let user = authResult?.user {
-                // まずFirestoreに即時保存
-                saveUserInfo(user)
-
-                // 表示名の更新は別途行う
+                // 表示名をAuthプロファイルに更新
                 let changeRequest = user.createProfileChangeRequest()
-                changeRequest.displayName = "\(firstName) \(lastName)"
+                changeRequest.displayName = displayName
                 changeRequest.commitChanges { error in
                     if let error = error {
                         errorMessage = "表示名の更新に失敗しましたが、アカウントは作成されました。"
                     }
+                    // 表示名更新後にFirestoreへデータを保存
+                    saveUserInfo(user)
                 }
             } else if let error = error {
                 errorMessage = "アカウント作成に失敗しました: \(error.localizedDescription)"
@@ -98,7 +97,7 @@ struct SignUpView: View {
         db.collection("users").document(user.uid).setData([
             "firstName": firstName,
             "lastName": lastName,
-            "displayName": "\(firstName) \(lastName)",
+            "displayName": displayName,
             "birthdate": Timestamp(date: birthdate),
             "email": email
         ]) { error in

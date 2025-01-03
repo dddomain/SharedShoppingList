@@ -22,7 +22,7 @@ struct ItemRowView: View {
                             .foregroundColor(.primary)
                         Text("期限: \(item.deadline != nil ? formatDate(item.deadline!) : "なし")")
                             .font(.subheadline)
-                            .foregroundColor(.gray)
+                            .foregroundColor(item.deadline == nil ? .gray : .red)
                     }
                     if context == "home" {
                         Text(groupName)

@@ -17,11 +17,44 @@ struct Item: Identifiable {
     var purchasedAt: String?
     var groupId: String? = nil
     
-    // グループIDを取得するメソッド（mutatingは使用しない）
-    // なぜこの方法が必要か？
-    // swiftの構造体（struct）は値型であり、mutating関数以外ではselfを変更できません。
-    // 非同期処理が発生するクロージャ内ではselfを直接変更することができず、このエラーが発生します。
-    func fetchGroupId(completion: @escaping (String?) -> Void) {
+    init(
+        id: String,
+        name: String,
+        purchased: Bool,
+        order: Int,
+        location: String,
+        url: String,
+        quantity: Int,
+        deadline: String,
+        memo: String,
+        registeredAt: String,
+        registrant: String,
+        buyer: String? = nil,
+        purchasedAt: String? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.purchased = purchased
+        self.order = order
+        self.location = location
+        self.url = url
+        self.quantity = quantity
+        self.deadline = deadline
+        self.memo = memo
+        self.registeredAt = registeredAt
+        self.registrant = registrant
+        self.buyer = buyer
+        self.purchasedAt = purchasedAt
+        
+        // グループIDを取得してプロパティに格納
+        var item = self
+        fetchGroupId { fetchedGroupId in
+            item.groupId = fetchedGroupId
+        }
+    }
+    
+    // 非同期でグループIDを取得するメソッド
+    private func fetchGroupId(completion: @escaping (String?) -> Void) {
         let db = Firestore.firestore()
         
         db.collection("groups").getDocuments { snapshot, error in
@@ -31,15 +64,13 @@ struct Item: Identifiable {
                     
                     groupRef.getDocument { itemDoc, error in
                         if itemDoc?.exists == true {
-                            // グループIDをクロージャ経由で返す
                             completion(document.documentID)
                             return
                         }
                     }
                 }
-            } else {
-                completion(nil)
             }
+            completion(nil)
         }
     }
 }

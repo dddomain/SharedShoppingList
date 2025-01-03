@@ -26,7 +26,7 @@ struct Item: Identifiable {
         location: String,
         url: String,
         quantity: Int,
-        deadline: Timestamp,  // Timestamp型で受け取る
+        deadline: Timestamp?,  // Optional
         memo: String,
         registeredAt: Date,
         registrant: String,
@@ -41,7 +41,7 @@ struct Item: Identifiable {
         self.location = location
         self.url = url
         self.quantity = quantity
-        self.deadline = deadline.dateValue()  // TimestampからDate型へ変換
+        self.deadline = deadline?.dateValue()  // Optionalであればnilが入る
         self.memo = memo
         self.registeredAt = registeredAt
         self.registrant = registrant

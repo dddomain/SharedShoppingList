@@ -157,12 +157,12 @@ struct HomeView: View {
                         location: data["location"] as? String ?? "",
                         url: data["url"] as? String ?? "",
                         quantity: data["quantity"] as? Int ?? 1,
-                        deadline: data["deadline"] as? Timestamp ?? Timestamp(date: Date()),  // Timestampで受け取る
+                        deadline: data["deadline"] as? Timestamp ?? nil,
                         memo: data["memo"] as? String ?? "",
                         registeredAt: data["registeredAt"] as? Date ?? Date(),
                         registrant: data["registrant"] as? String ?? "",
                         buyer: data["buyer"] as? String,
-                        purchasedAt: data["purchasedAt"] as? Timestamp,  // Optionalで受け取る
+                        purchasedAt: data["purchasedAt"] as? Timestamp,
                         groupId: group.id
                     )
                 }

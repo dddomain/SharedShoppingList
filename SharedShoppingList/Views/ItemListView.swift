@@ -195,12 +195,12 @@ struct ItemListView: View {
                         location: data["location"] as? String ?? "",
                         url: data["url"] as? String ?? "",
                         quantity: data["quantity"] as? Int ?? 1,
-                        deadline: data["deadline"] as? Timestamp ?? Timestamp(date: Date()),  // Timestampで受け取る
+                        deadline: data["deadline"] as? Timestamp ?? nil,
                         memo: data["memo"] as? String ?? "",
                         registeredAt: data["registeredAt"] as? Date ?? Date(),
                         registrant: data["registrant"] as? String ?? "",
                         buyer: data["buyer"] as? String,
-                        purchasedAt: data["purchasedAt"] as? Timestamp,  // Optionalで受け取る
+                        purchasedAt: data["purchasedAt"] as? Timestamp,
                         groupId: group.id
                     )
                 }
@@ -223,7 +223,7 @@ struct ItemListView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         
-        let itemData: [String: Any] = [
+        var itemData: [String: Any] = [
             "name": newItemName,
             "purchased": false,
             "order": maxOrder,
@@ -236,6 +236,13 @@ struct ItemListView: View {
             "registrant": Auth.auth().currentUser?.uid ?? "unknown",
             "groupId": group.id
         ]
+        
+        // 期限が設定されている場合のみ追加
+        if shouldSetDeadline {
+            itemData["deadline"] = Timestamp(date: newItemDeadline)
+        } else {
+            itemData["deadline"] = nil
+        }
         
         newItemRef.setData(itemData) { error in
             if let error = error {

@@ -286,6 +286,7 @@ struct ItemListView: View {
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
         let previousState = items[index].purchased
         items[index].purchased = toPurchased
+        print("toggle it.")
 
         db.collection("groups").document(group.id).collection("items").document(item.id).updateData([
             "purchased": toPurchased
@@ -293,9 +294,68 @@ struct ItemListView: View {
             if let error = error {
                 print("Error updating item: \(error.localizedDescription)")
                 items[index].purchased = previousState
+            } else {
+                sendPurchaseNotification(for: item, purchased: toPurchased)
             }
             selectedItem = nil
         }
+    }
+
+    // プッシュ通知を送信する関数
+    func sendPurchaseNotification(for item: Item, purchased: Bool) {
+        let message = purchased ? "\(item.name)が購入されました！" : "\(item.name)が未購入に戻されました。"
+        let db = Firestore.firestore()
+        
+        // グループメンバー全員のfcmTokenを取得
+        var tokens: [String] = []
+        let dispatchGroup = DispatchGroup() // 非同期タスクの同期管理
+
+        for memberID in group.members {
+            dispatchGroup.enter() // タスクを開始
+            db.collection("users").document(memberID).getDocument { document, error in
+                if let document = document, let data = document.data(), let fcmToken = data["fcmToken"] as? String {
+                    tokens.append(fcmToken) // トークンを収集
+                } else {
+                    print("トークン取得エラー: \(error?.localizedDescription ?? "不明なエラー")")
+                }
+                dispatchGroup.leave() // タスクを終了
+            }
+        }
+
+        // すべてのトークンを取得後に通知を送信
+        dispatchGroup.notify(queue: .main) {
+            for token in tokens {
+                NotificationManager.shared.sendNotification(to: token, title: "購入通知", body: message)
+            }
+            print("通知を送信しました: \(tokens.count)件")
+        }
+    }
+
+
+    // FCM通知を送信する関数
+    func sendFCMNotification(to token: String, title: String, body: String) {
+        let url = URL(string: "https://fcm.googleapis.com/fcm/send")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("key=サーバーキー", forHTTPHeaderField: "Authorization")
+        
+        let payload: [String: Any] = [
+            "to": token,
+            "notification": [
+                "title": title,
+                "body": body
+            ]
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+        
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("通知送信に失敗: \(error.localizedDescription)")
+            } else {
+                print("通知送信成功")
+            }
+        }.resume()
     }
     
     func deleteItem(at offsets: IndexSet) {

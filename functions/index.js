@@ -11,7 +11,7 @@ exports.sendNotification = functions.firestore
       if (after.purchased) {
         const payload = {
           notification: {
-            title: "消耗品購入完了",
+            title: "購入完了",
             body: `${after.name}が購入されました。`,
             sound: "default",
           },

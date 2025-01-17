@@ -47,7 +47,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Messaging
     
     // プッシュ通知を送信
     func sendNotification(to token: String, title: String, body: String) {
-        let url = URL(string: "https://fcm.googleapis.com/v1/projects/your-project-id/messages:send")!
+        let url = URL(string: "https://fcm.googleapis.com/v1/projects/sharedshoppinglist-feecd/messages:send")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -70,6 +70,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Messaging
                     ]
                 ]
             ]
+            print(payload)
             request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
             
             URLSession.shared.dataTask(with: request) { data, response, error in
@@ -92,15 +93,41 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Messaging
             } else if let data = data {
                 let token = String(data: data, encoding: .utf8)
                 completion(token)
+                print("アクセストークン取得成功")
             }
         }.resume()
     }
-
     
     // フォアグラウンドでの通知処理
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound, .badge])
+    }
+    
+    //グループ全員への通知メソッド
+    func sendGroupNotification(for group: Group, title: String, body: String) {
+        let db = Firestore.firestore()
+        var tokens: [String] = []
+        let dispatchGroup = DispatchGroup()
+        
+        for memberID in group.members {
+            dispatchGroup.enter()
+            db.collection("users").document(memberID).getDocument { document, error in
+                if let document = document, let data = document.data(), let fcmToken = data["fcmToken"] as? String {
+                    tokens.append(fcmToken)
+                } else {
+                    print("トークン取得エラー: \(error?.localizedDescription ?? "不明なエラー")")
+                }
+                dispatchGroup.leave()
+            }
+        }
+        
+        dispatchGroup.notify(queue: .main) {
+            for token in tokens {
+                self.sendNotification(to: token, title: title, body: body)
+            }
+            print("グループ全員に通知を送信しました: \(tokens.count)件")
+        }
     }
 }

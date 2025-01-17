@@ -280,13 +280,11 @@ struct ItemListView: View {
         newItemMemo = ""
     }
 
-
     func toggleItem(_ item: Item, toPurchased: Bool) {
         let db = Firestore.firestore()
         guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
         let previousState = items[index].purchased
         items[index].purchased = toPurchased
-        print("toggle it.")
 
         db.collection("groups").document(group.id).collection("items").document(item.id).updateData([
             "purchased": toPurchased
@@ -295,42 +293,12 @@ struct ItemListView: View {
                 print("Error updating item: \(error.localizedDescription)")
                 items[index].purchased = previousState
             } else {
-                sendPurchaseNotification(for: item, purchased: toPurchased)
+                let message = toPurchased ? "\(item.name)が購入されました！" : "\(item.name)が未購入に戻されました。"
+                NotificationManager.shared.sendGroupNotification(for: group, title: "購入通知", body: message)
             }
             selectedItem = nil
         }
     }
-
-    // プッシュ通知を送信する関数
-    func sendPurchaseNotification(for item: Item, purchased: Bool) {
-        let message = purchased ? "\(item.name)が購入されました！" : "\(item.name)が未購入に戻されました。"
-        let db = Firestore.firestore()
-        
-        // グループメンバー全員のfcmTokenを取得
-        var tokens: [String] = []
-        let dispatchGroup = DispatchGroup() // 非同期タスクの同期管理
-
-        for memberID in group.members {
-            dispatchGroup.enter() // タスクを開始
-            db.collection("users").document(memberID).getDocument { document, error in
-                if let document = document, let data = document.data(), let fcmToken = data["fcmToken"] as? String {
-                    tokens.append(fcmToken) // トークンを収集
-                } else {
-                    print("トークン取得エラー: \(error?.localizedDescription ?? "不明なエラー")")
-                }
-                dispatchGroup.leave() // タスクを終了
-            }
-        }
-
-        // すべてのトークンを取得後に通知を送信
-        dispatchGroup.notify(queue: .main) {
-            for token in tokens {
-                NotificationManager.shared.sendNotification(to: token, title: "購入通知", body: message)
-            }
-            print("通知を送信しました: \(tokens.count)件")
-        }
-    }
-
 
     // FCM通知を送信する関数
     func sendFCMNotification(to token: String, title: String, body: String) {

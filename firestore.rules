@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // グループの読み書きルール
+    match /groups/{groupId} {
+      // 認証済みユーザーならグループを読み取れる
+      allow read: if request.auth != null;
+
+      // グループの作成を許可
+      allow create: if request.auth != null;
+
+      // グループの更新（グループへの参加、メンバー追加や名前変更など）
+			allow update: if request.auth != null;
+
+      // グループの削除は作成者のみ許可
+      allow delete: if request.auth.uid == resource.data.createdBy;
+    }
+
+    // アイテムへのアクセスルール
+    match /groups/{groupId}/items/{itemId} {
+      // グループのメンバーならアイテムを読み取れる
+      allow read: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+
+      // グループメンバーがアイテムを作成できる
+      allow create: if request.auth != null && request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members;
+
+      // アイテムの登録者またはグループメンバーが更新可能
+      allow update: if request.auth != null &&
+        (request.auth.uid == resource.data.registrant ||
+         request.auth.uid in get(/databases/$(database)/documents/groups/$(groupId)).data.members);
+
+      // アイテム削除は登録者のみ許可
+      allow delete: if request.auth.uid == resource.data.registrant;
+    }
+
+    // ユーザー情報へのアクセスルール
+    match /users/{userId} {
+      allow create: if request.auth.uid == userId;  // 新規作成許可
+      allow read: if request.auth.uid == userId || resource.data.displayName != null;
+      allow update: if request.auth.uid == userId;
+      allow get: if request.auth.uid == userId || request.resource.data.keys().hasOnly(['displayName']);
+    }
+  }
+}

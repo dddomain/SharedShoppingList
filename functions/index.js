@@ -1,24 +1,24 @@
-    
 const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 admin.initializeApp();
 
-exports.sendNotification = functions.firestore
-    .document("groups/{groupId}/items/{itemId}")
-    .onUpdate((change, context) => {
-      const after = change.after.data();
+exports.sendPushNotification = functions.https.onRequest(async (req, res) =>{
+  const {token, title, body} = req.body;
 
-      if (after.purchased) {
-        const payload = {
-          notification: {
-            title: "購入完了",
-            body: `${after.name}が購入されました。`,
-            sound: "default",
-          },
-        };
+  const message = {
+    notification: {
+      title: title,
+      body: body,
+    },
+    token: token,
+  };
 
-        // トピックごとに通知を送信
-        return admin.messaging().sendToTopic(context.params.groupId, payload);
-      }
-      return null;
-    });
+  try {
+    await admin.messaging().send(message);
+    res.status(200).send("通知が送信されました");
+  } catch (error) {
+    console.error("通知送信エラー:", error);
+    res.status(500).send("通知の送信に失敗しました");
+  }
+});
+

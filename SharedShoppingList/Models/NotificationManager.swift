@@ -56,65 +56,41 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Messaging
 
     // プッシュ通知を送信
     func sendNotification(to token: String, title: String, body: String) {
-        guard let url = URL(string: fcmSendURL) else {
+        guard let url = URL(string: "https://us-central1-sharedshoppinglist-feecd.cloudfunctions.net/sendPushNotification") else {
             print("[DEBUG] FCM送信URLが無効です")
             return
         }
 
-        guard let currentUser = Auth.auth().currentUser else {
-            print("[DEBUG] ユーザーが認証されていません")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let payload: [String: Any] = [
+            "token": token,
+            "title": title,
+            "body": body
+        ]
+
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+            print("[DEBUG] ペイロードを作成しました: \(payload)")
+        } catch {
+            print("[DEBUG] ペイロード作成エラー: \(error.localizedDescription)")
             return
         }
 
-        currentUser.getIDToken { [weak self] idToken, error in
-            guard let self = self else { return }
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
-                print("[DEBUG] IDトークン取得エラー: \(error.localizedDescription)")
-                return
-            }
-
-            guard let idToken = idToken else {
-                print("[DEBUG] IDトークンが取得できませんでした")
-                return
-            }
-
-            print("[DEBUG] IDトークンを取得しました: \(idToken)")
-
-            var request = URLRequest(url: url)
-            request.httpMethod = "POST"
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue("Bearer \(idToken)", forHTTPHeaderField: "Authorization")
-
-            let payload: [String: Any] = [
-                "message": [
-                    "token": token,
-                    "notification": [
-                        "title": title,
-                        "body": body
-                    ]
-                ]
-            ]
-
-            do {
-                request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-                print("[DEBUG] ペイロードを作成しました: \(payload)")
-            } catch {
-                print("[DEBUG] ペイロード作成エラー: \(error.localizedDescription)")
-                return
-            }
-
-            URLSession.shared.dataTask(with: request) { data, response, error in
-                if let error = error {
-                    print("[DEBUG] 通知送信エラー: \(error.localizedDescription)")
-                } else if let httpResponse = response as? HTTPURLResponse {
-                    print("[DEBUG] 通知送信ステータスコード: \(httpResponse.statusCode)")
-                    if let data = data, let responseString = String(data: data, encoding: .utf8) {
-                        print("[DEBUG] 通知送信レスポンス: \(responseString)")
-                    }
+                print("[DEBUG] 通知送信エラー: \(error.localizedDescription)")
+            } else if let httpResponse = response as? HTTPURLResponse {
+                print("[DEBUG] 通知送信ステータスコード: \(httpResponse.statusCode)")
+                if let data = data, let responseString = String(data: data, encoding: .utf8) {
+                    print("[DEBUG] 通知送信レスポンス: \(responseString)")
                 }
-            }.resume()
-        }
+            }
+        }.resume()
     }
+
 
     // フォアグラウンドでの通知処理
     func userNotificationCenter(_ center: UNUserNotificationCenter,

@@ -13,7 +13,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Messaging
         Messaging.messaging().delegate = self
     }
 
-    // プッシュ通知の初期化
+    // 🔥 通知の初期化
     func configure() {
         let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
         UNUserNotificationCenter.current().requestAuthorization(options: authOptions) { granted, error in
@@ -26,7 +26,7 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Messaging
         UIApplication.shared.registerForRemoteNotifications()
     }
 
-    // デバイストークンを取得したときの処理
+    // 🔥 デバイストークンを取得したときの処理
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         guard let fcmToken = fcmToken else {
             print("[DEBUG] FCMトークンがnilです")
@@ -36,25 +36,82 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Messaging
         saveTokenToServer(fcmToken)
     }
 
-    // トークンをサーバーに保存
+    // 🔥 Firestore にデバイスごとのトークンを保存
     func saveTokenToServer(_ token: String) {
         guard let userID = Auth.auth().currentUser?.uid else {
             print("[DEBUG] ユーザーIDが取得できません")
             return
         }
-        print("[DEBUG] ユーザーID: \(userID)")
 
         let db = Firestore.firestore()
-        db.collection("users").document(userID).setData(["fcmToken": token], merge: true) { error in
-            if let error = error {
-                print("[DEBUG] トークン保存エラー: \(error.localizedDescription)")
+        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        let deviceRef = db.collection("devices").document(deviceId)
+
+        // 🔥 既存のトークンをチェックしてから保存
+        deviceRef.getDocument { document, error in
+            if let document = document, document.exists {
+                var existingTokens = document.data()?["fcmTokens"] as? [String] ?? []
+                
+                if !existingTokens.contains(token) {
+                    existingTokens.append(token)
+                    deviceRef.setData([
+                        "fcmTokens": existingTokens,
+                        "userId": userID,
+                        "lastUpdated": Timestamp(date: Date())
+                    ], merge: true)
+                    print("[DEBUG] Firestore に新しい FCM トークンを保存: \(token)")
+                } else {
+                    print("[DEBUG] 既存の FCM トークンのため保存不要: \(token)")
+                }
             } else {
-                print("[DEBUG] トークンを保存しました: \(token)")
+                deviceRef.setData([
+                    "fcmTokens": [token],
+                    "userId": userID,
+                    "lastUpdated": Timestamp(date: Date())
+                ])
+                print("[DEBUG] Firestore に FCM トークンを初回保存: \(token)")
             }
         }
     }
 
-    // プッシュ通知を送信
+    // 🔥 グループメンバー全員へ通知を送信
+    func sendGroupNotification(for group: Group, title: String, body: String) {
+        let db = Firestore.firestore()
+
+        db.collection("groups").document(group.id).getDocument { document, error in
+            if let error = error {
+                print("[DEBUG] グループトークン取得エラー: \(error.localizedDescription)")
+                return
+            }
+
+            guard let document = document, let data = document.data(),
+                  let members = data["members"] as? [String] else {
+                print("[DEBUG] メンバー情報が見つかりません")
+                return
+            }
+
+            print("[DEBUG] メンバー情報を取得しました: \(members)")
+
+            // 🔥 devices コレクションから、メンバー全員のデバイス情報を取得
+            db.collection("devices").whereField("userId", in: members).getDocuments { snapshot, error in
+                if let error = error {
+                    print("[DEBUG] デバイスFCMトークン取得エラー: \(error.localizedDescription)")
+                    return
+                }
+
+                let tokens = snapshot?.documents.flatMap { $0.data()["fcmTokens"] as? [String] ?? [] } ?? []
+                let uniqueTokens = Array(Set(tokens))
+
+                print("[DEBUG] 取得したトークン: \(uniqueTokens)")
+                for token in uniqueTokens {
+                    self.sendNotification(to: token, title: title, body: body)
+                }
+                print("[DEBUG] グループ全員に通知を送信しました: \(uniqueTokens.count) 件")
+            }
+        }
+    }
+
+    // 🔥 プッシュ通知を送信
     func sendNotification(to token: String, title: String, body: String) {
         guard let url = URL(string: "https://us-central1-sharedshoppinglist-feecd.cloudfunctions.net/sendPushNotification") else {
             print("[DEBUG] FCM送信URLが無効です")
@@ -91,49 +148,11 @@ class NotificationManager: NSObject, UNUserNotificationCenterDelegate, Messaging
         }.resume()
     }
 
-
-    // フォアグラウンドでの通知処理
+    // 🔥 フォアグラウンドでの通知処理
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         print("[DEBUG] 通知を受け取りました: \(notification.request.content.userInfo)")
         completionHandler([.banner, .sound, .badge])
-    }
-
-    // グループ全員への通知メソッド
-    func sendGroupNotification(for group: Group, title: String, body: String) {
-        let db = Firestore.firestore()
-
-        // グループドキュメントを取得してメンバー情報を取得
-        db.collection("groups").document(group.id).getDocument { document, error in
-            if let error = error {
-                print("[DEBUG] グループトークン取得エラー: \(error.localizedDescription)")
-                return
-            }
-
-            guard let document = document, let data = document.data(),
-                  let members = data["members"] as? [String] else {
-                print("[DEBUG] メンバー情報が見つかりません")
-                return
-            }
-
-            print("[DEBUG] メンバー情報を取得しました: \(members)")
-
-            // メンバーのUIDをもとに `users` コレクションを参照してトークンを取得
-            db.collection("users").whereField(FieldPath.documentID(), in: members).getDocuments { snapshot, error in
-                if let error = error {
-                    print("[DEBUG] ユーザートークン取得エラー: \(error.localizedDescription)")
-                    return
-                }
-
-                // FCMトークンを収集
-                let tokens = snapshot?.documents.compactMap { $0.data()["fcmToken"] as? String } ?? []
-                print("[DEBUG] 取得したトークン: \(tokens)")
-                for token in tokens {
-                    self.sendNotification(to: token, title: title, body: body)
-                }
-                print("[DEBUG] グループ全員に通知を送信しました: \(tokens.count)件")
-            }
-        }
     }
 }

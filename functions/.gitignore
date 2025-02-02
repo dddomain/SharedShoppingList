@@ -1,2 +1,5 @@
+# Firebase Functions
 node_modules/
-*.local
+package-lock.json
+service-account.json
+.env

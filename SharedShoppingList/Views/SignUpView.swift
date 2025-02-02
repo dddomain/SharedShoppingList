@@ -2,6 +2,7 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseMessaging
 
 struct SignUpView: View {
     @Binding var isLoggedIn: Bool
@@ -36,9 +37,8 @@ struct SignUpView: View {
                     SecureField("パスワード", text: $password)
                     SecureField("パスワード確認", text: $confirmPassword)
                 }
-                .textFieldStyle(RoundedBorderTextFieldStyle())  // 正しくViewに適用
+                .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
-
 
                 if !errorMessage.isEmpty {
                     Text(errorMessage)
@@ -56,7 +56,7 @@ struct SignUpView: View {
                         .foregroundColor(.white)
                         .cornerRadius(10)
                 }
-                .disabled(!isFormValid() || isProcessing)  // バリデーションと処理中はボタン無効化
+                .disabled(!isFormValid() || isProcessing)
                 .padding()
             }
             .padding()
@@ -74,14 +74,13 @@ struct SignUpView: View {
         isProcessing = true
         Auth.auth().createUser(withEmail: email, password: password) { authResult, error in
             if let user = authResult?.user {
-                // 表示名をAuthプロファイルに更新
                 let changeRequest = user.createProfileChangeRequest()
                 changeRequest.displayName = displayName
                 changeRequest.commitChanges { error in
                     if error != nil {
                         errorMessage = "表示名の更新に失敗しましたが、アカウントは作成されました。"
                     }
-                    // 表示名更新後にFirestoreへデータを保存
+                    // 🔥 FCM トークンを Firestore に保存
                     saveUserInfo(user)
                 }
             } else if let error = error {
@@ -91,24 +90,33 @@ struct SignUpView: View {
         }
     }
 
-    // Firestoreにユーザー情報を保存
+    // Firestoreにユーザー情報 + FCMトークンを保存
     private func saveUserInfo(_ user: User) {
         let db = Firestore.firestore()
-        db.collection("users").document(user.uid).setData([
-            "firstName": firstName,
-            "lastName": lastName,
-            "displayName": displayName,
-            "birthdate": Timestamp(date: birthdate),
-            "email": email
-        ]) { error in
+        Messaging.messaging().token { token, error in
             if let error = error {
-                errorMessage = "ユーザー情報の保存に失敗しました: \(error.localizedDescription)"
-                print("Firestore書き込みエラー: \(error)")  // エラー内容をログ出力
-            } else {
-                isLoggedIn = true
-                print("ユーザー情報が正常に保存されました")
+                print("⚠️ FCM トークン取得エラー: \(error.localizedDescription)")
             }
-            isProcessing = false
+            
+            let userData: [String: Any] = [
+                "firstName": firstName,
+                "lastName": lastName,
+                "displayName": displayName,
+                "birthdate": Timestamp(date: birthdate),
+                "email": email,
+                "fcmToken": token ?? "" // 🔥 FCMトークンを Firestore に保存（取得失敗時は空）
+            ]
+            
+            db.collection("users").document(user.uid).setData(userData) { error in
+                if let error = error {
+                    errorMessage = "ユーザー情報の保存に失敗しました: \(error.localizedDescription)"
+                    print("Firestore書き込みエラー: \(error)")
+                } else {
+                    isLoggedIn = true
+                    print("✅ Firestore にユーザー情報と FCM トークンを保存しました: \(token ?? "なし")")
+                }
+                isProcessing = false
+            }
         }
     }
 

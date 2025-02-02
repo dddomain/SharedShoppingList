@@ -4,14 +4,14 @@ service cloud.firestore {
 
     // グループの読み書きルール
     match /groups/{groupId} {
-      // 認証済みユーザーならグループを読み取れる
+      // 認証済みユーザーなら読み取りを許可
       allow read: if request.auth != null;
 
       // グループの作成を許可
       allow create: if request.auth != null;
 
       // グループの更新（グループへの参加、メンバー追加や名前変更など）
-			allow update: if request.auth != null;
+      allow update: if request.auth != null;
 
       // グループの削除は作成者のみ許可
       allow delete: if request.auth.uid == resource.data.createdBy;
@@ -40,6 +40,18 @@ service cloud.firestore {
       allow read: if request.auth.uid == userId || resource.data.displayName != null;
       allow update: if request.auth.uid == userId;
       allow get: if request.auth.uid == userId || request.resource.data.keys().hasOnly(['displayName']);
+    }
+
+    // 🔥 デバイス情報へのアクセスルール
+    match /devices/{deviceId} {
+      // 🔥 認証済みユーザーのみ `read` を許可
+      allow read: if request.auth != null;
+      
+      // ユーザーが自分のデバイス情報のみ作成・更新可能
+      allow create, update: if request.auth != null && request.auth.uid == request.resource.data.userId;
+
+      // デバイス情報の削除は自分のみ許可
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
   }
 }

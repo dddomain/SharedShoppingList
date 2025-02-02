@@ -4,118 +4,69 @@ import FirebaseFirestore
 
 struct HomeView: View {
     @EnvironmentObject var session: SessionManager
+    @ObservedObject var userManager = UserInfoManager.shared  // 🔥 UserInfoManager を使用
+
     @State private var items: [Item] = []
     @State private var groups: [String: Group] = [:]
     @State private var currentUserID: String? = Auth.auth().currentUser?.uid
     @State private var selectedItem: Item? = nil
     @State private var alertType: AlertType = .none
 
-    @State private var userName: String = ""
-    @State private var displayName: String = ""
-    @State private var email: String = ""
-    @State private var birthdate: String = ""
-
     var body: some View {
-        List {
-            ForEach(items) { item in
-                let groupName = groups[item.groupId]?.name ?? "不明なグループ"
-                let groupMembers = groups[item.groupId]?.members ?? []  // membersを取得
+        NavigationView {
+            List {
+                ForEach(items) { item in
+                    let groupName = groups[item.groupId]?.name ?? "不明なグループ"
+                    let groupMembers = groups[item.groupId]?.members ?? []
 
-                ItemRowView(item: item, groupName: groupName, members: groupMembers, context: "home") {
-                    selectedItem = item
-                    alertType = item.purchased ? .unpurchase : .purchase
+                    ItemRowView(item: item, groupName: groupName, members: groupMembers, context: "home") {
+                        selectedItem = item
+                        alertType = item.purchased ? .unpurchase : .purchase
+                    }
                 }
             }
-        }
-        .navigationTitle("買いに行きましょう")
-        .onAppear {
-            Task {
-                await fetchUserGroupsAndItems()
+            .navigationTitle("買いに行きましょう")
+            .onAppear {
+                Task {
+                    await fetchUserGroupsAndItems()
+                }
             }
-        }
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Menu {
-                    Button(action: {
-                        session.showProfile = true
-                        UserInfoManager.fetchUserInfo { name, display, mail, birth in
-                            self.userName = name
-                            self.displayName = display
-                            self.email = mail
-                            self.birthdate = birth
+            .toolbar {  // 🔥 `.toolbar(content:)` に変更
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Menu {
+                        Button(action: {
+                            userManager.loadUserInfo()  // 🔥 `fetchUserInfo()` → `loadUserInfo()`
+                            session.showProfile = true
+                        }) {
+                            Label("プロフィールを見る", systemImage: "person")
                         }
-                    }) {
-                        Label("プロフィールを見る", systemImage: "person")
-                    }
-                    Button(action: {
-                        do {
-                            try Auth.auth().signOut()
-                            session.isLoggedIn = false
-                        } catch {
-                            print("ログアウトに失敗しました: \(error.localizedDescription)")
+                        Button(action: {
+                            do {
+                                try Auth.auth().signOut()
+                                session.isLoggedIn = false
+                            } catch {
+                                print("ログアウトに失敗しました: \(error.localizedDescription)")
+                            }
+                        }) {
+                            Label("ログアウトする", systemImage: "arrow.right.circle")
                         }
-                    }) {
-                        Label("ログアウトする", systemImage: "arrow.right.circle")
-                    }
-                } label: {
-                    HStack {
+                    } label: {
                         Image(systemName: "person.circle")
                     }
                 }
             }
-        }
-        .sheet(isPresented: $session.showProfile) {
-            ProfileView(userName: userName, displayName: displayName, email: email, birthdate: birthdate)
-        }
-        .alert(item: $selectedItem) { item in
-            switch alertType {
-            case .purchase:
-                return Alert(
-                    title: Text("購入確認"),
-                    message: Text("購入済みとしてマークしますか？"),
-                    primaryButton: .default(Text("はい")) {
-                        toggleItem(item, toPurchased: true)
-                    },
-                    secondaryButton: .cancel(Text("いいえ"))
+            .sheet(isPresented: $session.showProfile) {
+                ProfileView(
+                    userName: userManager.userName,
+                    displayName: userManager.displayName,
+                    email: userManager.email,
+                    birthdate: userManager.birthdate
                 )
-            case .unpurchase:
-                return Alert(
-                    title: Text("未購入に戻す確認"),
-                    message: Text("未購入に戻しますか？"),
-                    primaryButton: .default(Text("はい")) {
-                        toggleItem(item, toPurchased: false)
-                    },
-                    secondaryButton: .cancel(Text("いいえ"))
-                )
-            case .none:
-                return Alert(title: Text("エラー"))
             }
         }
     }
 
-    // アイテムの購入状態を切り替え
-    private func toggleItem(_ item: Item, toPurchased: Bool) {
-        let db = Firestore.firestore()
-        let groupId = item.groupId
-        guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
-        let previousState = items[index].purchased
-        items[index].purchased = toPurchased
-
-        db.collection("groups").document(groupId).collection("items").document(item.id).updateData([
-            "purchased": toPurchased
-        ]) { error in
-            if let error = error {
-                print("更新に失敗しました: \(error.localizedDescription)")
-                items[index].purchased = previousState
-            } else {
-                // 購入済みアイテムを非表示にする
-                items.removeAll { $0.purchased == true }
-            }
-            selectedItem = nil
-        }
-    }
-
-    // Firestoreからグループと未購入アイテムを取得
+    // Firestore からグループとアイテムを取得
     private func fetchUserGroupsAndItems() async {
         guard let userID = currentUserID else { return }
         let db = Firestore.firestore()

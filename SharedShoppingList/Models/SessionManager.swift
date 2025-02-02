@@ -8,6 +8,7 @@ class SessionManager: ObservableObject {
     @Published var isLoggedIn: Bool = false
     @Published var user: User? = nil
     @Published var showProfile: Bool = false
+    @Published var userColor: Color = .blue  // デフォルトカラーを blue に設定
 
     init() {
         Auth.auth().addStateDidChangeListener { [weak self] _, user in
@@ -15,14 +16,39 @@ class SessionManager: ObservableObject {
                 self?.user = user
                 self?.isLoggedIn = true
                 print("✅ ユーザーがログインしました: \(user.uid)")
-                self?.updateFCMToken() // 🔥 ログイン時に最新の FCM トークンを Firestore に保存
+                self?.updateFCMToken() // 🔥 最新の FCM トークンを Firestore に保存
+                self?.loadUserColor()  // 🔥 ユーザーのカラーを取得
             } else {
                 self?.isLoggedIn = false
+                self?.userColor = .blue  // ログアウト時はデフォルトカラーに戻す
                 print("🚪 ユーザーがログアウトしました")
             }
         }
     }
 
+    // Firestore からユーザーのカラーを取得
+    private func loadUserColor() {
+        guard let user = Auth.auth().currentUser else { return }
+
+        let db = Firestore.firestore()
+        db.collection("users").document(user.uid).collection("settings").document("preferences")
+            .getDocument { document, error in
+                if let error = error {
+                    print("⚠️ カラー設定の取得エラー: \(error.localizedDescription)")
+                    return
+                }
+
+                if let document = document, document.exists {
+                    let colorName = document.data()?["colorTheme"] as? String ?? "blue"
+                    DispatchQueue.main.async {
+                        self.userColor = ColorManager.getColor(from: colorName)
+                        print("🎨 ユーザーのカラーを適用: \(colorName)")
+                    }
+                }
+            }
+    }
+
+    /// Firestore に FCM トークンを更新
     func updateFCMToken() {
         Messaging.messaging().token { token, error in
             if let error = error {

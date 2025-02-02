@@ -5,16 +5,13 @@ import FirebaseAuth
 
 struct GroupListView: View {
     @EnvironmentObject var session: SessionManager
+    @ObservedObject var userManager = UserInfoManager.shared  // 🔥 UserInfoManager を使用
+
     @State private var groups: [Group] = []
     @State private var newGroupName: String = ""
     @State private var showAddGroupPopup: Bool = false
     @State private var inviteCodeInput: String = ""
     @State private var showJoinGroupPopup: Bool = false
-    
-    @State private var userName: String = ""
-    @State private var displayName: String = ""
-    @State private var email: String = ""
-    @State private var birthdate: String = ""
     
     @State private var errorMessage: String? = nil
 
@@ -72,12 +69,7 @@ struct GroupListView: View {
                 Menu {
                     Button(action: {
                         session.showProfile = true
-                        UserInfoManager.fetchUserInfo { name, display, mail, birth in
-                            self.userName = name
-                            self.displayName = display
-                            self.email = mail
-                            self.birthdate = birth
-                        }
+                        userManager.loadUserInfo()  // 🔥 `fetchUserInfo()` → `loadUserInfo()` に変更
                     }) {
                         Label("プロフィールを見る", systemImage: "person")
                     }
@@ -92,9 +84,7 @@ struct GroupListView: View {
                         Label("ログアウトする", systemImage: "arrow.right.circle")
                     }
                 } label: {
-                    HStack {
-                        Image(systemName: "person.circle")
-                    }
+                    Image(systemName: "person.circle")
                 }
             }
         }
@@ -102,7 +92,12 @@ struct GroupListView: View {
             fetchGroups()
         }
         .sheet(isPresented: $session.showProfile) {
-            ProfileView(userName: userName, displayName: displayName, email: email, birthdate: birthdate)
+            ProfileView(
+                userName: userManager.userName,
+                displayName: userManager.displayName,
+                email: userManager.email,
+                birthdate: userManager.birthdate
+            )
         }
         .sheet(isPresented: $showAddGroupPopup) {
             VStack {
@@ -123,27 +118,6 @@ struct GroupListView: View {
                 .padding()
             }
             .padding()
-        }
-    }
-
-    // ユーザー情報を取得する関数
-    func fetchUserInfo() {
-        guard let user = Auth.auth().currentUser else { return }
-        let db = Firestore.firestore()
-        
-        db.collection("users").document(user.uid).getDocument { document, error in
-            if let document = document, document.exists {
-                let data = document.data()
-                userName = "\(data?["firstName"] as? String ?? "") \(data?["lastName"] as? String ?? "")"
-                displayName = data?["displayName"] as? String ?? "未設定"
-                email = data?["email"] as? String ?? "未設定"
-                
-                if let timestamp = data?["birthdate"] as? Timestamp {
-                    let dateFormatter = DateFormatter()
-                    dateFormatter.dateStyle = .medium
-                    birthdate = dateFormatter.string(from: timestamp.dateValue())
-                }
-            }
         }
     }
 
@@ -186,7 +160,7 @@ struct GroupListView: View {
         let groupData: [String: Any] = [
             "inviteCode": inviteCode,
             "name": newGroupName,
-            "members": [userId],  // 作成者をメンバーとして追加
+            "members": [userId],
             "createdBy": userId
         ]
         newGroupRef.setData(groupData) { error in
@@ -195,7 +169,7 @@ struct GroupListView: View {
                     id: newGroupRef.documentID,
                     name: newGroupName,
                     inviteCode: inviteCode,
-                    members: [userId]  // 作成者を初期メンバーとして追加
+                    members: [userId]
                 ))
                 newGroupName = ""
             }

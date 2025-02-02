@@ -1,4 +1,3 @@
-//SignUpView.swift
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
@@ -15,6 +14,10 @@ struct SignUpView: View {
     @State private var birthdate = Date()
     @State private var errorMessage = ""
     @State private var isProcessing = false  // 処理中フラグ
+
+    // 🔥 カラー選択機能の追加
+    @State private var selectedColor = "blue" // 初期値を iOS のデフォルトと同じに
+    let colorOptions = ["blue", "red", "green", "yellow", "orange", "purple", "pink", "gray"]
 
     var body: some View {
         ZStack {
@@ -36,6 +39,15 @@ struct SignUpView: View {
                         .keyboardType(.emailAddress)
                     SecureField("パスワード", text: $password)
                     SecureField("パスワード確認", text: $confirmPassword)
+                    
+                    // 🔥 カラー選択 UI
+                    Picker("テーマカラー", selection: $selectedColor) {
+                        ForEach(colorOptions, id: \.self) { color in
+                            Text(color.capitalized)
+                                .foregroundColor(ColorManager.getColor(from: color))
+                        }
+                    }
+                    .pickerStyle(MenuPickerStyle())
                 }
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
@@ -52,7 +64,7 @@ struct SignUpView: View {
                     Text("アカウントを作成")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(isFormValid() ? Color.blue : Color.gray)
+                        .background(isFormValid() ? ColorManager.getColor(from: selectedColor) : Color.gray)
                         .foregroundColor(.white)
                         .cornerRadius(10)
                 }
@@ -90,7 +102,7 @@ struct SignUpView: View {
         }
     }
 
-    // Firestoreにユーザー情報 + FCMトークンを保存
+    // Firestore にユーザー情報 + カラー設定 + FCM トークンを保存
     private func saveUserInfo(_ user: User) {
         let db = Firestore.firestore()
         Messaging.messaging().token { token, error in
@@ -104,6 +116,7 @@ struct SignUpView: View {
                 "displayName": displayName,
                 "birthdate": Timestamp(date: birthdate),
                 "email": email,
+                "colorTheme": selectedColor, // 🔥 カラー設定を Firestore に保存
                 "fcmToken": token ?? "" // 🔥 FCMトークンを Firestore に保存（取得失敗時は空）
             ]
             
@@ -112,8 +125,11 @@ struct SignUpView: View {
                     errorMessage = "ユーザー情報の保存に失敗しました: \(error.localizedDescription)"
                     print("Firestore書き込みエラー: \(error)")
                 } else {
-                    isLoggedIn = true
-                    print("✅ Firestore にユーザー情報と FCM トークンを保存しました: \(token ?? "なし")")
+                    DispatchQueue.main.async {
+                        UserInfoManager.shared.loadUserInfo() // 🔥 カラー設定を適用
+                        isLoggedIn = true
+                        print("✅ Firestore にユーザー情報とカラー設定を保存しました: \(selectedColor)")
+                    }
                 }
                 isProcessing = false
             }

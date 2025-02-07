@@ -22,7 +22,9 @@
 
 - **🔔 プッシュ通知 (FCM)**  
   - アイテム購入時にグループメンバーへ通知  
-  - Firebase Cloud Functions を活用した通知送信  
+  - Firebase Cloud Functions を活用した通知送信
+    <img src="/スクリーンショット/5.png" width="30%" />
+    <img src="/スクリーンショット/2.png" width="30%" />
 
 - **🔑 ユーザー認証 (Firebase Auth)**  
   - メール・パスワード認証  

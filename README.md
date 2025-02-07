@@ -1,9 +1,6 @@
 # 📦 **買い物リスト共有アプリ - Shared Shopping List**
 **Firebase を活用したリアルタイム買い物リスト管理アプリ**
 
-<img src="/スクリーンショット/5.png" width="30%" />
-
----
 ## 📌 **概要**
 本アプリは、グループで買い物リストを共有・管理できるiOSアプリである。  
 **Firebase Authentication**, **Firestore Database**, **Cloud Messaging (FCM)**, **Cloud Functions** を活用し、リアルタイムでデータの同期と通知を行う。
@@ -19,17 +16,18 @@
   - 招待コードによるグループ参加  
   - グループメンバーの一覧表示  
   - Firestoreを用いたアクセス制御
+<img src="/スクリーンショット/3.png" width="30%" />
 
 - **🔔 プッシュ通知 (FCM)**  
   - アイテム購入時にグループメンバーへ通知  
   - Firebase Cloud Functions を活用した通知送信
-    <img src="/スクリーンショット/5.png" width="30%" />
-    <img src="/スクリーンショット/2.png" width="30%" />
+<img src="/スクリーンショット/5.png" width="30%" />
+<img src="/スクリーンショット/2.png" width="30%" />
 
 - **🔑 ユーザー認証 (Firebase Auth)**  
   - メール・パスワード認証  
-  - Firestore でユーザープロフィールを管理  
-  <img src="/スクリーンショット/1.png" width="30%" />
+  - Firestore でユーザープロフィールを管理
+<img src="/スクリーンショット/1.png" width="30%" />
 
 ## 🛠 **使用技術**
 ### 📱 フロントエンド

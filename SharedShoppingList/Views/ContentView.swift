@@ -41,6 +41,6 @@ struct ContentView: View {
         .onAppear {
             userManager.loadUserInfo()  // 🔥 Firestore からユーザーのカラーを取得
         }
-        .preferredColorScheme(userManager.colorTheme == .blue ? .light : .dark) // 🔥 UI モード適用
+        //.preferredColorScheme(userManager.colorTheme == .blue ? .light : .dark) // 🔥 UI モード適用
     }
 }

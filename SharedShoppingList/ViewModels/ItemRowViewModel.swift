@@ -7,9 +7,12 @@ struct ItemRowView: View {
     let context: String  // "home" or "list" を想定
     let onTap: () -> Void
 
+    @ObservedObject var userManager = UserInfoManager.shared  // 🔥 ユーザーのカラーを取得
+
     var body: some View {
         HStack {
             Image(systemName: item.purchased ? "checkmark.circle.fill" : "circle")
+                .foregroundColor(item.purchased ? userManager.colorTheme : .gray) // 🔥 チェック済みならユーザーのカラーに
                 .onTapGesture {
                     onTap()
                 }
@@ -28,13 +31,12 @@ struct ItemRowView: View {
                         Text(groupName)
                             .font(.caption)
                             .foregroundColor(.gray)
-                    } else if context == "list" {
-                        // こちらのみで表示する情報はなし。
                     }
                 }
             }
         }
     }
+
     @ViewBuilder
     private func destinationView() -> some View {
         if !item.groupId.isEmpty {
@@ -50,5 +52,4 @@ struct ItemRowView: View {
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
     }
-
 }

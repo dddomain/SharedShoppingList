@@ -6,8 +6,7 @@ import UserNotifications
 struct SettingsView: View {
     @ObservedObject var userManager = UserInfoManager.shared
     @AppStorage("notificationsEnabled") private var notificationsEnabled: Bool = true
-    @AppStorage("themeMode") private var themeMode: String = "System"
-    
+
     var body: some View {
         NavigationView {
             Form {
@@ -24,20 +23,20 @@ struct SettingsView: View {
 
                 Section(header: Text("通知")) {
                     Toggle("プッシュ通知を受け取る", isOn: $notificationsEnabled)
-                        .onChange(of: notificationsEnabled) { value in
-                            handleNotificationChange(value)
+                        .onChange(of: notificationsEnabled) {
+                            handleNotificationChange($0)
                         }
                 }
 
                 Section(header: Text("テーマ")) {
-                    Picker("テーマ", selection: $themeMode) {
+                    Picker("テーマ", selection: $userManager.storedThemeMode) {
                         Text("ライト").tag("Light")
                         Text("ダーク").tag("Dark")
                         Text("システム").tag("System")
                     }
-                    .pickerStyle(SegmentedPickerStyle())
-                    .onChange(of: themeMode) { _ in
-                        applyTheme()
+                    .pickerStyle(MenuPickerStyle())
+                    .onChange(of: userManager.storedThemeMode) {
+                        userManager.saveThemeMode($0) // 🔥 Firestore にテーマを保存し、UI に適用
                     }
                 }
 
@@ -50,15 +49,14 @@ struct SettingsView: View {
                         }
                     }
                     .pickerStyle(MenuPickerStyle())
-                    .onChange(of: userManager.storedColor) { newColor in
-                        userManager.saveUserColor(newColor) // 🔥 Firestore に新しいカラーを保存
+                    .onChange(of: userManager.storedColor) {
+                        userManager.saveUserColor($0) // 🔥 Firestore に新しいカラーを保存
                     }
                 }
             }
             .navigationTitle("設定")
             .onAppear {
-                userManager.loadUserInfo() // 🔥 ユーザー情報 & カラー設定を適用
-                applyTheme()
+                userManager.loadUserInfo() // 🔥 Firestore のデータを UI に適用
             }
         }
     }
@@ -76,19 +74,5 @@ struct SettingsView: View {
         guard let userID = Auth.auth().currentUser?.uid else { return }
         let db = Firestore.firestore()
         db.collection("users").document(userID).setData(["notificationsEnabled": enabled], merge: true)
-    }
-
-    private func applyTheme() {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
-        for window in windowScene.windows {
-            switch themeMode {
-            case "Light":
-                window.overrideUserInterfaceStyle = .light
-            case "Dark":
-                window.overrideUserInterfaceStyle = .dark
-            default:
-                window.overrideUserInterfaceStyle = .unspecified
-            }
-        }
     }
 }

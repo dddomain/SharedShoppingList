@@ -17,7 +17,7 @@ struct SettingsView: View {
                     birthdate: userManager.birthdate
                 )) {
                     HStack {
-                        Image(systemName: "person.circle")  // 🔥 プロフィールアイコン
+                        Image(systemName: "person.circle")
                             .foregroundColor(userManager.colorTheme)
                         Text("プロフィール")
                     }
@@ -26,7 +26,7 @@ struct SettingsView: View {
 
             Section(header: Text("通知")) {
                 HStack {
-                    Image(systemName: "bell")  // 🔥 通知アイコン
+                    Image(systemName: "bell")
                         .foregroundColor(userManager.colorTheme)
                     Toggle("プッシュ通知を受け取る", isOn: $notificationsEnabled)
                         .onChange(of: notificationsEnabled) {
@@ -37,41 +37,53 @@ struct SettingsView: View {
 
             Section(header: Text("テーマ")) {
                 HStack {
-                    Image(systemName: userManager.storedThemeMode == "Dark" ? "moon.stars.fill" : "sun.max.fill")  // 🔥 昼夜のアイコン
+                    Image(systemName: userManager.storedThemeMode == "Dark" ? "moon.stars.fill" : "sun.max.fill")
                         .foregroundColor(userManager.colorTheme)
-                    Picker("テーマ", selection: $userManager.storedThemeMode) {
-                        Text("ライト").tag("Light").foregroundColor(.black)
-                        Text("ダーク").tag("Dark").foregroundColor(.black)
-                        Text("システム").tag("System").foregroundColor(.black)
+                    Picker("画面設定", selection: $userManager.storedThemeMode) {
+                        Text("ライト").tag("Light")
+                        Text("ダーク").tag("Dark")
+                        Text("システム").tag("System")
                     }
                     .pickerStyle(MenuPickerStyle())
                     .onChange(of: userManager.storedThemeMode) {
-                        userManager.saveThemeMode($0) // 🔥 Firestore にテーマを保存し、UI に適用
+                        userManager.saveThemeMode($0)
                     }
                 }
-            }
-
-            // 🔥 カラー設定
-            Section(header: Text("アプリカラー")) {
                 HStack {
-                    Image(systemName: "paintpalette.fill")  // 🔥 ペイントアイコン
+                    Image(systemName: "paintpalette.fill")
                         .foregroundColor(userManager.colorTheme)
-                    Picker("カラーを選択", selection: $userManager.storedColor) {
+                    Picker("あなたのカラー", selection: $userManager.storedColor) {
                         ForEach(["blue", "red", "green", "yellow", "orange", "purple", "pink"], id: \.self) { color in
                             Text(color.capitalized)
-                                .foregroundColor(.black)  // 🔥 ピッカーの文字を黒にする
                         }
                     }
                     .pickerStyle(MenuPickerStyle())
                     .onChange(of: userManager.storedColor) {
-                        userManager.saveUserColor($0) // 🔥 Firestore に新しいカラーを保存
+                        userManager.saveUserColor($0)
+                    }
+                }
+            }
+
+            Section(header: Text("その他")) {
+                NavigationLink(destination: PrivacyPolicyView()) {
+                    HStack {
+                        Image(systemName: "lock.doc.fill")  // 🔥 プライバシーポリシーアイコン
+                            .foregroundColor(userManager.colorTheme)
+                        Text("プライバシーポリシー")
+                    }
+                }
+                NavigationLink(destination: TermsOfServiceView()) {
+                    HStack {
+                        Image(systemName: "doc.text.fill")  // 🔥 利用規約アイコン
+                            .foregroundColor(userManager.colorTheme)
+                        Text("利用規約")
                     }
                 }
             }
         }
         .navigationTitle("設定")
         .onAppear {
-            userManager.loadUserInfo() // 🔥 Firestore のデータを UI に適用
+            userManager.loadUserInfo()
         }
     }
 

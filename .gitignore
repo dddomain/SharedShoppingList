@@ -17,3 +17,10 @@ venv/
 # IDE関連ファイル
 .idea/
 .vscode/
+
+# その他
+dataconnect
+Dataconnect-generated
+eslint.config.mjs
+SharedShoppingList.entitlements
+

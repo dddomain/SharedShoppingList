@@ -34,13 +34,21 @@ service cloud.firestore {
       allow delete: if request.auth.uid == resource.data.registrant;
     }
 
-    // ユーザー情報へのアクセスルール
     match /users/{userId} {
       allow create: if request.auth.uid == userId;  // 新規作成許可
-      allow read: if request.auth.uid == userId || resource.data.displayName != null;
+
+      // 🔥 他のユーザーの displayName, colorTheme, themeMode を取得可能に変更
+      allow read: if request.auth.uid == userId || 
+                  resource.data.displayName != null || 
+                  resource.data.colorTheme != null || 
+                  resource.data.themeMode != null;
+
       allow update: if request.auth.uid == userId;
-      allow get: if request.auth.uid == userId || request.resource.data.keys().hasOnly(['displayName']);
-    }
+
+      // 🔥 他のユーザーから取得できるデータを制限
+      allow get: if request.auth.uid == userId || 
+                  request.resource.data.keys().hasOnly(['displayName', 'colorTheme', 'themeMode']);
+}
 
     // 🔥 デバイス情報へのアクセスルール
     match /devices/{deviceId} {

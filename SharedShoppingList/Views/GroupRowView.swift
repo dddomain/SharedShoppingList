@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GroupRowView: View {
     let group: Group
+    @State private var memberData: [String: (String, Color)] = [:]  // 🔥 UIDごとの表示名とカラー
 
     var body: some View {
         HStack {
@@ -23,19 +24,26 @@ struct GroupRowView: View {
                 }
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
-                        ForEach(group.memberDisplayNames, id: \.self) { displayName in
-                            Text(displayName)
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(8)
+                        ForEach(group.members, id: \.self) { userId in
+                            if let (displayName, color) = memberData[userId] {
+                                Text(displayName)
+                                    .font(.caption)
+                                    .foregroundColor(color)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(color.opacity(0.1))
+                                    .cornerRadius(8)
+                            }
                         }
                     }
                 }
             }
         }
         .padding(.vertical, 8)
+        .onAppear {
+            UserInfoManager.shared.fetchMemberData(userIds: group.members) { data in
+                self.memberData = data
+            }
+        }
     }
 }

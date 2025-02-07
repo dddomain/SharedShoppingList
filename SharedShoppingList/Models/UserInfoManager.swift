@@ -9,17 +9,20 @@ class UserInfoManager: ObservableObject {
     @Published var displayName: String = ""
     @Published var email: String = ""
     @Published var birthdate: String = "未設定"
-    
+
     @AppStorage("userColor") var storedColor: String = "blue"
     @AppStorage("themeMode") var storedThemeMode: String = "System"  // 🔥 テーマのローカル保存
 
     static let shared = UserInfoManager()
+    
+    @Published var userColors: [String: Color] = [:]  // 🔥 UIDごとのカラー情報
+    @Published var userDisplayNames: [String: String] = [:]  // 🔥 UIDごとの表示名
 
     private init() {
         loadUserInfo() // ユーザー情報とテーマ・カラーを一括ロード
     }
 
-    /// Firestore からユーザー情報を取得
+    /// Firestore から現在のユーザーの情報を取得
     func loadUserInfo() {
         guard let user = Auth.auth().currentUser else {
             print("[UserInfoManager] ユーザー未ログインのため情報を取得できません")
@@ -62,6 +65,32 @@ class UserInfoManager: ObservableObject {
         }
     }
 
+    /// 🔥 Firestore から指定されたユーザーIDリストの `displayName` と `colorTheme` を取得
+    func fetchMemberData(userIds: [String], completion: @escaping ([String: (String, Color)]) -> Void) {
+        let db = Firestore.firestore()
+        var data: [String: (String, Color)] = [:]
+        let dispatchGroup = DispatchGroup()
+
+        for userId in userIds {
+            dispatchGroup.enter()
+            db.collection("users").document(userId).getDocument { document, error in
+                if let document = document, document.exists {
+                    let colorName = document.data()?["colorTheme"] as? String ?? "blue"
+                    let displayName = document.data()?["displayName"] as? String ?? "不明"
+                    let color = ColorManager.getColor(from: colorName)
+                    data[userId] = (displayName, color)
+                }
+                dispatchGroup.leave()
+            }
+        }
+
+        dispatchGroup.notify(queue: .main) {
+            self.userColors = data.mapValues { $0.1 }
+            self.userDisplayNames = data.mapValues { $0.0 }
+            completion(data)
+        }
+    }
+
     /// Firestore にテーマモードを保存し、即適用
     func saveThemeMode(_ theme: String) {
         guard let user = Auth.auth().currentUser else {
@@ -84,28 +113,28 @@ class UserInfoManager: ObservableObject {
                 }
             }
     }
-    
+
     /// 🔥 Firestore にカラー設定を保存
     func saveUserColor(_ color: String) {
-            guard let user = Auth.auth().currentUser else {
-                print("[UserInfoManager] ユーザー未ログインのためカラーを保存できません")
-                return
-            }
+        guard let user = Auth.auth().currentUser else {
+            print("[UserInfoManager] ユーザー未ログインのためカラーを保存できません")
+            return
+        }
 
-            let db = Firestore.firestore()
-            db.collection("users").document(user.uid)
-                .setData(["colorTheme": color], merge: true) { error in
-                    if let error = error {
-                        print("[UserInfoManager] カラー設定の保存エラー: \(error.localizedDescription)")
-                    } else {
-                        DispatchQueue.main.async {
-                            self.colorTheme = ColorManager.getColor(from: color)
-                            self.storedColor = color  // 🔥 ローカルストレージにも反映
-                            print("[UserInfoManager] ユーザーのカラーを保存: \(color)")
-                        }
+        let db = Firestore.firestore()
+        db.collection("users").document(user.uid)
+            .setData(["colorTheme": color], merge: true) { error in
+                if let error = error {
+                    print("[UserInfoManager] カラー設定の保存エラー: \(error.localizedDescription)")
+                } else {
+                    DispatchQueue.main.async {
+                        self.colorTheme = ColorManager.getColor(from: color)
+                        self.storedColor = color  // 🔥 ローカルストレージにも反映
+                        print("[UserInfoManager] ユーザーのカラーを保存: \(color)")
                     }
                 }
-        }
+            }
+    }
 
     /// 🔥 UI に即時適用
     func applyTheme() {

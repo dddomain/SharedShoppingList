@@ -13,7 +13,8 @@ struct HomeView: View {
     @State private var alertType: AlertType = .none
 
     var body: some View {
-        NavigationView {
+
+        VStack {
             List {
                 ForEach(items) { item in
                     let groupName = groups[item.groupId]?.name ?? "不明なグループ"
@@ -25,44 +26,44 @@ struct HomeView: View {
                     }
                 }
             }
-            .navigationTitle("買いに行きましょう")
             .onAppear {
                 Task {
                     await fetchUserGroupsAndItems()
                 }
             }
-            .toolbar {  // 🔥 `.toolbar(content:)` に変更
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Menu {
-                        Button(action: {
-                            userManager.loadUserInfo()  // 🔥 `fetchUserInfo()` → `loadUserInfo()`
-                            session.showProfile = true
-                        }) {
-                            Label("プロフィールを見る", systemImage: "person")
-                        }
-                        Button(action: {
-                            do {
-                                try Auth.auth().signOut()
-                                session.isLoggedIn = false
-                            } catch {
-                                print("ログアウトに失敗しました: \(error.localizedDescription)")
-                            }
-                        }) {
-                            Label("ログアウトする", systemImage: "arrow.right.circle")
-                        }
-                    } label: {
-                        Image(systemName: "person.circle")
+        }
+        .navigationTitle("買いに行きましょう")
+        .toolbar {  // 🔥 `.toolbar(content:)` に変更
+            ToolbarItem(placement: .navigationBarLeading) {
+                Menu {
+                    Button(action: {
+                        userManager.loadUserInfo()  // 🔥 `fetchUserInfo()` → `loadUserInfo()`
+                        session.showProfile = true
+                    }) {
+                        Label("プロフィールを見る", systemImage: "person")
                     }
+                    Button(action: {
+                        do {
+                            try Auth.auth().signOut()
+                            session.isLoggedIn = false
+                        } catch {
+                            print("ログアウトに失敗しました: \(error.localizedDescription)")
+                        }
+                    }) {
+                        Label("ログアウトする", systemImage: "arrow.right.circle")
+                    }
+                } label: {
+                    Image(systemName: "person.circle")
                 }
             }
-            .sheet(isPresented: $session.showProfile) {
-                ProfileView(
-                    userName: userManager.userName,
-                    displayName: userManager.displayName,
-                    email: userManager.email,
-                    birthdate: userManager.birthdate
-                )
-            }
+        }
+        .sheet(isPresented: $session.showProfile) {
+            ProfileView(
+                userName: userManager.userName,
+                displayName: userManager.displayName,
+                email: userManager.email,
+                birthdate: userManager.birthdate
+            )
         }
     }
 

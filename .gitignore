@@ -18,6 +18,11 @@ venv/
 .idea/
 .vscode/
 
+# Firebase関連ファイル
+firebase.json
+firestore.indexes.json
+.firebaserc
+
 # その他
 dataconnect
 Dataconnect-generated

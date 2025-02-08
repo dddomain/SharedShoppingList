@@ -10,24 +10,24 @@
 - グループごとのアイテム管理  
 - リアルタイム更新と並び替え  
 - 購入済みフラグの変更
-<img src="/スクリーンショット/4.png" width="30%" />
+<img src="/スクリーンショット/4.png" width="400px" />
 
 ### 👥 グループ管理
 - 招待コードによるグループ参加  
 - グループメンバーの一覧表示  
 - Firestoreを用いたアクセス制御
-<img src="/スクリーンショット/3.png" width="30%" />
+<img src="/スクリーンショット/6.png" width="400px" />
 
 ### 🔔 プッシュ通知 (FCM)
 - アイテム購入時にグループメンバーへ通知  
 - Firebase Cloud Functions を活用した通知送信
-<img src="/スクリーンショット/5.png" width="30%" />
-<img src="/スクリーンショット/2.png" width="30%" />
+<img src="/スクリーンショット/5.png" width="400px" />
+<img src="/スクリーンショット/2.png" width="400px" />
 
 ### 🔑 ユーザー認証 (Firebase Auth)* 
 - メール・パスワード認証  
 - Firestore でユーザープロフィールを管理
-<img src="/スクリーンショット/1.png" width="30%" />
+<img src="/スクリーンショット/1.png" width="400px" />
 
 ## 🛠 **使用技術**
 ### 📱 フロントエンド
@@ -42,37 +42,6 @@
 - **Firebase Cloud Messaging (FCM)** - リアルタイム通知
 
 ---
-
-## 🔧 **プロジェクト構成**
-```
-📦 SharedShoppingList
- ┣ 📂 Views             # SwiftUIの画面コンポーネント
- ┃ ┣ 📄 ContentView.swift
- ┃ ┣ 📄 HomeView.swift
- ┃ ┣ 📄 GroupListView.swift
- ┃ ┣ 📄 ItemListView.swift
- ┃ ┣ 📄 ItemDetailView.swift
- ┃ ┣ 📄 ProfileView.swift
- ┃ ┣ 📄 SettingsView.swift
- ┣ 📂 Models           # データモデル
- ┃ ┣ 📄 Item.swift
- ┃ ┣ 📄 Group.swift
- ┣ 📂 Managers        # ユーザー・セッション管理
- ┃ ┣ 📄 SessionManager.swift
- ┃ ┣ 📄 UserInfoManager.swift
- ┃ ┣ 📄 NotificationManager.swift
- ┣ 📂 Firebase        # Firebase関連ファイル
- ┃ ┣ 📄 AppDelegate.swift
- ┃ ┣ 📄 index.js (Cloud Functions)
- ┣ 📂 Components     # UIコンポーネント
- ┃ ┣ 📄 ItemRowView.swift
- ┃ ┣ 📄 GroupRowView.swift
- ┃ ┣ 📄 DetailRow.swift
- ┣ 📄 README.md
-```
-
----
-
 ## 🔍 **Firestore データ構造**
 ### 🛒 **アイテム (`items` コレクション)**
 ```json
@@ -200,9 +169,3 @@ exports.sendPushNotification = functions.https.onRequest(async (req, res) => {
 ```
 
 ---
-
-## 🛠 **今後の改善点**
-- **📶 オフライン対応**: Firestoreのキャッシュを活用したオフラインモード
-- **📆 期限通知**: 買い物リストの期限が近づいたら通知
-- **🌐 多言語対応**: ローカライズ機能を追加
-- **🎨 UI改善**: SwiftUIのアニメーションやカスタムデザインの追加
